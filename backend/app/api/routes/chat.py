@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.core.database import get_db
+from app.models.user import User
+from app.schemas.chat import (
+    AskRequest,
+    AskResponse,
+    ChatCreate,
+    ChatOut,
+    CitationOut,
+    MessageOut,
+)
+from app.services.chat_service import add_message, create_chat, get_chat, list_chats, list_messages
+from app.services.embeddings_service import embed_texts
+from app.services.llm_service import generate_answer
+from app.services.retrieval_service import top_k_chunks_for_workspace
+from app.services.workspace_service import get_workspace
+
+router = APIRouter(tags=["chat"])
+
+
+@router.get("/api/workspaces/{workspace_id}/chats", response_model=list[ChatOut])
+def get_chats(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[ChatOut]:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    items = list_chats(db, workspace_id=workspace_id)
+    return [ChatOut(id=c.id, workspace_id=c.workspace_id, title=c.title, created_at=c.created_at) for c in items]
+
+
+@router.post("/api/workspaces/{workspace_id}/chats", response_model=ChatOut, status_code=status.HTTP_201_CREATED)
+def create_new_chat(
+    workspace_id: int,
+    payload: ChatCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChatOut:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    c = create_chat(db, workspace_id=workspace_id, title=payload.title)
+    return ChatOut(id=c.id, workspace_id=c.workspace_id, title=c.title, created_at=c.created_at)
+
+
+@router.get("/api/chats/{chat_id}/messages", response_model=list[MessageOut])
+def get_messages(
+    chat_id: int,
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[MessageOut]:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    c = get_chat(db, chat_id=chat_id, workspace_id=workspace_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    msgs = list_messages(db, chat_id=chat_id)
+    out: list[MessageOut] = []
+    for m in msgs:
+        citations = None
+        if isinstance(m.citations_json, dict) and isinstance(m.citations_json.get("citations"), list):
+            citations = [CitationOut(**c) for c in m.citations_json["citations"]]
+        out.append(
+            MessageOut(
+                id=m.id,
+                chat_id=m.chat_id,
+                role=m.role,
+                content=m.content,
+                citations=citations,
+                created_at=m.created_at,
+            )
+        )
+    return out
+
+
+@router.post("/api/workspaces/{workspace_id}/chat", response_model=AskResponse)
+def ask(
+    workspace_id: int,
+    payload: AskRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AskResponse:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    # create chat if not provided
+    if payload.chat_id is None:
+        c = create_chat(db, workspace_id=workspace_id, title=payload.question[:60])
+    else:
+        c = get_chat(db, chat_id=payload.chat_id, workspace_id=workspace_id)
+        if not c:
+            raise HTTPException(status_code=404, detail="Chat not found")
+
+    add_message(db, chat_id=c.id, role="user", content=payload.question)
+
+    query_emb = embed_texts([payload.question])[0]
+    top = top_k_chunks_for_workspace(db, workspace_id=workspace_id, query_embedding=query_emb, k=6)
+
+    citations: list[CitationOut] = []
+    context_blocks: list[str] = []
+    for chunk, _score, filename in top:
+        excerpt = chunk.content[:400]
+        citations.append(
+            CitationOut(
+                document_id=chunk.document_id,
+                filename=filename,
+                chunk_id=chunk.id,
+                page_number=chunk.page_number,
+                excerpt=excerpt,
+            )
+        )
+        context_blocks.append(f"[{filename} | chunk {chunk.id} | page {chunk.page_number}]\n{chunk.content}")
+
+    answer = generate_answer(question=payload.question, context_blocks=context_blocks)
+
+    add_message(
+        db,
+        chat_id=c.id,
+        role="assistant",
+        content=answer,
+        citations_json={"citations": [c.model_dump() for c in citations]},
+    )
+
+    return AskResponse(chat_id=c.id, answer=answer, citations=citations)
+

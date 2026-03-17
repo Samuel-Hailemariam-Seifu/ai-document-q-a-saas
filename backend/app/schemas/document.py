@@ -28,3 +28,11 @@ class DocumentListOut(BaseModel):
     status: str
     chunk_count: int
     created_at: datetime
+
+
+class ChunkOut(BaseModel):
+    id: int
+    document_id: int
+    chunk_index: int
+    page_number: int | None
+    content: str

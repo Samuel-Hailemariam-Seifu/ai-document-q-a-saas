@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 14
     backend_cors_origins: str = "http://localhost:5173"
     storage_path: str = "uploads"
+    redis_url: str = "redis://localhost:6379/0"
+    run_ingest_inline: bool = False  # if True, run document ingestion in-process (no Redis/Celery needed)
+    openai_api_key: str = ""
+    openai_embedding_model: str = "text-embedding-3-small"
+    embedding_dim: int = 1536
+    chunk_size: int = 900
+    chunk_overlap: int = 150
 
     @property
     def cors_origins_list(self) -> list[str]:

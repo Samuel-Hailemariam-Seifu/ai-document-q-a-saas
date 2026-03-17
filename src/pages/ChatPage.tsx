@@ -1,73 +1,96 @@
-import { useMemo, useState, type FormEvent } from 'react'
-
-type Message = {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-}
-
-type Citation = {
-  id: string
-  filename: string
-  meta: string
-  excerpt: string
-  icon: 'pdf' | 'article'
-}
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { askQuestion, createChat, listChats, listMessages, type Chat, type Citation, type Message } from '../services/chat'
+import { useWorkspaces } from '../workspaces/WorkspaceContext'
 
 export function ChatPage() {
+  const { state: wsState } = useWorkspaces()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeWorkspaceId = wsState.status === 'ready' ? wsState.activeWorkspaceId : null
+  const activeChatId = searchParams.get('chatId') ? Number(searchParams.get('chatId')) : null
+
   const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'm1',
-      role: 'assistant',
-      content:
-        "Hello! I've analyzed the documents in Project Alpha. Based on the Q3 report, the primary risk factors include supply chain disruptions in the semiconductor sector and upcoming regulatory changes in the EU regarding AI data privacy.",
-    },
-    {
-      id: 'm2',
-      role: 'user',
-      content:
-        'Can you provide the specific citations for the EU regulatory changes mentioned in the report?',
-    },
-    {
-      id: 'm3',
-      role: 'assistant',
-      content:
-        'Certainly. The regulatory changes are primarily detailed in:\n\n• Section 4.2 of Compliance_Final.pdf\n• Page 12, Paragraph 3 of Strategic_Outlook_2024.pdf\n\nI have highlighted these sections in the Citations panel on the right.',
-    },
-  ])
+  const [chats, setChats] = useState<Chat[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [citations, setCitations] = useState<Citation[]>([])
+  const [sending, setSending] = useState(false)
 
-  const citations = useMemo<Citation[]>(
-    () => [
-      {
-        id: 'c1',
-        filename: 'Compliance_Final.pdf',
-        meta: '2.4 MB • Updated Oct 12',
-        excerpt:
-          '"...regulatory frameworks surrounding the EU AI Act will necessitate significant changes to data ingestion protocols by Q1 2024..."',
-        icon: 'pdf',
-      },
-      {
-        id: 'c2',
-        filename: 'Strategic_Outlook_2024.pdf',
-        meta: '1.1 MB • Updated Sep 28',
-        excerpt:
-          '"Page 12: Exposure to European markets is contingent on compliance with updated privacy guidelines scheduled for parliamentary review..."',
-        icon: 'article',
-      },
-    ],
-    [],
-  )
+  const refreshChats = useCallback(async () => {
+    if (!activeWorkspaceId) return
+    const list = await listChats(activeWorkspaceId)
+    setChats(list)
+    if (!activeChatId && list[0]) {
+      setSearchParams({ chatId: String(list[0].id) }, { replace: true })
+    }
+  }, [activeWorkspaceId, activeChatId, setSearchParams])
 
-  function onSubmit(e: FormEvent) {
+  const refreshMessages = useCallback(async () => {
+    if (!activeWorkspaceId || !activeChatId) {
+      setMessages([])
+      setCitations([])
+      return
+    }
+    const list = await listMessages(activeChatId, activeWorkspaceId)
+    setMessages(list)
+    const lastAssistant = [...list].reverse().find((m) => m.role === 'assistant' && m.citations?.length)
+    setCitations(lastAssistant?.citations ?? [])
+  }, [activeWorkspaceId, activeChatId])
+
+  useEffect(() => {
+    void refreshChats()
+  }, [refreshChats])
+
+  useEffect(() => {
+    void refreshMessages()
+  }, [refreshMessages])
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (!draft.trim()) return
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: 'user', content: draft.trim() },
-    ])
+    if (!activeWorkspaceId) return
+
+    const question = draft.trim()
     setDraft('')
-    // Phase 6: wire to backend Q&A endpoint and stream/append assistant response
+
+    setSending(true)
+    try {
+      let chatId = activeChatId
+      if (!chatId) {
+        const created = await createChat(activeWorkspaceId, question.slice(0, 60))
+        chatId = created.id
+        setChats((prev) => [created, ...prev])
+        setSearchParams({ chatId: String(chatId) }, { replace: true })
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          chat_id: chatId!,
+          role: 'user',
+          content: question,
+          created_at: new Date().toISOString(),
+        } as Message,
+      ])
+
+      const res = await askQuestion(activeWorkspaceId, question, chatId)
+      setCitations(res.citations)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          chat_id: res.chat_id,
+          role: 'assistant',
+          content: res.answer,
+          citations: res.citations,
+          created_at: new Date().toISOString(),
+        } as Message,
+      ])
+
+      await refreshChats()
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -89,6 +112,12 @@ export function ChatPage() {
           <button
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             type="button"
+            onClick={async () => {
+              if (!activeWorkspaceId) return
+              const created = await createChat(activeWorkspaceId, 'New chat')
+              setChats((prev) => [created, ...prev])
+              setSearchParams({ chatId: String(created.id) }, { replace: true })
+            }}
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
             New Chat
@@ -99,33 +128,29 @@ export function ChatPage() {
           <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
             Recent Chats
           </p>
-          <a
-            className="flex items-center gap-3 rounded-xl bg-slate-200 px-4 py-3 text-slate-900 dark:bg-accent-dark dark:text-white"
-            href="#"
-          >
-            <span className="material-symbols-outlined text-[20px] fill-current">
-              chat_bubble
-            </span>
-            <span className="truncate text-sm font-medium">
-              Project Alpha Analysis
-            </span>
-          </a>
-          {[
-            ['description', 'Market Research Q4'],
-            ['shield', 'Legal Review - Patents'],
-            ['code', 'API Integration Docs'],
-          ].map(([icon, title]) => (
-            <a
-              key={title}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-accent-dark/50"
-              href="#"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                {icon}
-              </span>
-              <span className="truncate text-sm font-medium">{title}</span>
-            </a>
-          ))}
+          {chats.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-slate-500">No chats yet.</div>
+          ) : (
+            chats.map((c) => {
+              const active = activeChatId === c.id
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSearchParams({ chatId: String(c.id) }, { replace: true })}
+                  className={[
+                    'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors',
+                    active
+                      ? 'bg-slate-200 text-slate-900 dark:bg-accent-dark dark:text-white'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-accent-dark/50',
+                  ].join(' ')}
+                >
+                  <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
+                  <span className="truncate text-sm font-medium">{c.title}</span>
+                </button>
+              )
+            })
+          )}
         </nav>
 
         <div className="space-y-1 border-t border-slate-200 p-4 dark:border-accent-dark">
@@ -166,7 +191,9 @@ export function ChatPage() {
             <span className="material-symbols-outlined text-primary">
               auto_awesome
             </span>
-            <h2 className="text-sm font-semibold">Project Alpha Analysis</h2>
+            <h2 className="text-sm font-semibold">
+              {chats.find((c) => c.id === activeChatId)?.title ?? 'Chat'}
+            </h2>
           </div>
           <div className="flex items-center gap-4">
             {['search', 'ios_share'].map((i) => (
@@ -252,8 +279,9 @@ export function ChatPage() {
                 className="size-10 rounded-xl bg-primary text-white shadow-lg shadow-primary/20"
                 type="submit"
                 aria-label="Send"
+                disabled={sending}
               >
-                <span className="material-symbols-outlined">send</span>
+                <span className="material-symbols-outlined">{sending ? 'hourglass_top' : 'send'}</span>
               </button>
             </form>
             <p className="mt-3 text-center text-[10px] text-slate-400">
@@ -279,30 +307,32 @@ export function ChatPage() {
         <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-4">
           {citations.map((c) => (
             <div
-              key={c.id}
+              key={`${c.document_id}-${c.chunk_id}`}
               className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-primary/50 dark:border-accent-dark dark:bg-surface-dark"
             >
               <div className="mb-3 flex items-center gap-3">
                 <div
                   className={[
                     'flex size-8 items-center justify-center rounded-lg',
-                    c.icon === 'pdf'
+                    c.filename.toLowerCase().endsWith('.pdf')
                       ? 'bg-red-500/10 text-red-500'
                       : 'bg-emerald-500/10 text-emerald-500',
                   ].join(' ')}
                 >
                   <span className="material-symbols-outlined text-[20px]">
-                    {c.icon === 'pdf' ? 'picture_as_pdf' : 'article'}
+                    {c.filename.toLowerCase().endsWith('.pdf') ? 'picture_as_pdf' : 'article'}
                   </span>
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold">{c.filename}</p>
-                  <p className="text-[10px] text-slate-500">{c.meta}</p>
+                  <p className="text-[10px] text-slate-500">
+                    chunk {c.chunk_id}{c.page_number != null ? ` • page ${c.page_number}` : ''}
+                  </p>
                 </div>
               </div>
               <div className="rounded-lg border-l-2 border-primary bg-slate-50 p-3 dark:bg-accent-dark/40">
                 <p className="text-[11px] italic leading-relaxed text-slate-600 dark:text-slate-400">
-                  {c.excerpt}
+                  “{c.excerpt}”
                 </p>
               </div>
             </div>

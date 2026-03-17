@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.services.storage_service import delete_file, save_upload
 from app.services.workspace_service import get_workspace
 
@@ -68,6 +69,19 @@ def create_document(
     db.commit()
     db.refresh(doc)
     return doc
+
+
+def list_chunks(db: Session, *, document_id: int, owner_id: int) -> list[DocumentChunk]:
+    doc = get_document(db, document_id=document_id, owner_id=owner_id)
+    if not doc:
+        return []
+    return list(
+        db.execute(
+            select(DocumentChunk)
+            .where(DocumentChunk.document_id == document_id)
+            .order_by(DocumentChunk.chunk_index)
+        ).scalars().all()
+    )
 
 
 def delete_document(db: Session, *, document_id: int, owner_id: int) -> bool:

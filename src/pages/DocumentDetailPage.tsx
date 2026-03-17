@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deleteDocument, getDocument, type DocumentDetail } from '../services/documents'
+import {
+  deleteDocument,
+  getDocument,
+  getDocumentChunks,
+  type DocumentChunkItem,
+  type DocumentDetail,
+} from '../services/documents'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -26,6 +32,7 @@ export function DocumentDetailPage() {
   const { documentId } = useParams()
   const navigate = useNavigate()
   const [doc, setDoc] = useState<DocumentDetail | null>(null)
+  const [chunks, setChunks] = useState<DocumentChunkItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,8 +47,12 @@ export function DocumentDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const d = await getDocument(id)
+      const [d, chunkList] = await Promise.all([
+        getDocument(id),
+        getDocumentChunks(id).catch(() => []),
+      ])
       setDoc(d)
+      setChunks(chunkList)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load document')
       setDoc(null)
@@ -212,10 +223,40 @@ export function DocumentDetailPage() {
               </div>
             </div>
 
-            {doc.status === 'ready' && doc.chunk_count === 0 && (
-              <p className="text-sm text-slate-500">
-                Chunk extraction will appear here after the processing pipeline runs (Phase 5).
-              </p>
+            {doc.status === 'ready' && chunks.length > 0 && (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-primary/20 dark:bg-primary/5">
+                <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 dark:border-primary/20 dark:bg-primary/10">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-primary/70">
+                    Extracted Chunks
+                  </span>
+                </div>
+                <div className="custom-scrollbar max-h-[600px] space-y-6 overflow-y-auto p-6">
+                  {chunks.map((c) => (
+                    <div key={c.id} className="group space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                          CHUNK #{String(c.chunk_index + 1).padStart(3, '0')}
+                        </span>
+                        {c.page_number != null && (
+                          <span className="text-xs text-slate-500">Page {c.page_number}</span>
+                        )}
+                        <div className="h-px flex-1 bg-slate-100 dark:bg-primary/10" />
+                      </div>
+                      <div className="rounded-lg border border-transparent bg-slate-50 p-4 transition-all group-hover:border-primary/30 dark:bg-primary/5">
+                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                          {c.content}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {doc.status === 'processing' && (
+              <p className="text-sm text-slate-500">Processing document… chunks will appear when ready.</p>
+            )}
+            {doc.status === 'pending' && (
+              <p className="text-sm text-slate-500">Document is queued for processing.</p>
             )}
           </div>
         </main>

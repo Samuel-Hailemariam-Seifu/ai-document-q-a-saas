@@ -62,8 +62,23 @@ export async function uploadDocument(
   return res.json() as Promise<DocumentDetail>
 }
 
+export type DocumentChunkItem = {
+  id: number
+  document_id: number
+  chunk_index: number
+  page_number: number | null
+  content: string
+}
+
 export async function getDocument(documentId: number): Promise<DocumentDetail> {
   return apiRequest<DocumentDetail>(`/api/documents/${documentId}`, {
+    method: 'GET',
+    auth: true,
+  })
+}
+
+export async function getDocumentChunks(documentId: number): Promise<DocumentChunkItem[]> {
+  return apiRequest<DocumentChunkItem[]>(`/api/documents/${documentId}/chunks`, {
     method: 'GET',
     auth: true,
   })

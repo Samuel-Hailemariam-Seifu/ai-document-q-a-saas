@@ -6,13 +6,16 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.document import DocumentListOut, DocumentOut
+from app.schemas.document import ChunkOut, DocumentListOut, DocumentOut
 from app.services.document_service import (
     create_document,
     delete_document,
     get_document,
+    list_chunks,
     list_documents,
 )
+from app.core.config import settings
+from app.tasks.document_tasks import ingest_document
 from app.services.workspace_service import get_workspace
 
 router = APIRouter(tags=["documents"])
@@ -67,6 +70,11 @@ async def upload_document(
             status_code=400,
             detail="Invalid file type or size. Allowed: PDF, TXT, DOCX; max 25MB.",
         )
+    if settings.run_ingest_inline:
+        ingest_document(doc.id)
+        db.refresh(doc)
+    else:
+        ingest_document.delay(doc.id)
     return DocumentOut(
         id=doc.id,
         workspace_id=doc.workspace_id,
@@ -106,6 +114,19 @@ def get_document_detail(
         error_message=doc.error_message,
         created_at=doc.created_at,
     )
+
+
+@router.get("/api/documents/{document_id}/chunks", response_model=list[ChunkOut])
+def get_document_chunks(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    chunks = list_chunks(db, document_id=document_id, owner_id=current_user.id)
+    return [
+        ChunkOut(id=c.id, document_id=c.document_id, chunk_index=c.chunk_index, page_number=c.page_number, content=c.content)
+        for c in chunks
+    ]
 
 
 @router.delete("/api/documents/{document_id}", status_code=204)
