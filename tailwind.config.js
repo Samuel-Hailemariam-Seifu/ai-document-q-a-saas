@@ -1,4 +1,7 @@
 /** @type {import('tailwindcss').Config} */
+import forms from '@tailwindcss/forms'
+import containerQueries from '@tailwindcss/container-queries'
+
 export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -8,6 +11,8 @@ export default {
         primary: '#3b2bee',
         'background-light': '#f6f6f8',
         'background-dark': '#121022',
+        'surface-dark': '#1c1a33',
+        'accent-dark': '#262348',
       },
       fontFamily: {
         display: ['Inter', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
@@ -20,6 +25,6 @@ export default {
       },
     },
   },
-  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/container-queries')],
+  plugins: [forms, containerQueries],
 }
 
