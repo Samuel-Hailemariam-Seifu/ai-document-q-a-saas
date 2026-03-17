@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { register } from '../services/auth'
+import { LogoMark } from '../components/brand/LogoMark'
 
 function errorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'message' in err) return String((err as { message?: unknown }).message ?? '')
@@ -39,9 +40,7 @@ export function SignupPage() {
     <div className="flex min-h-screen flex-col bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-primary/20 md:px-12">
         <div className="flex items-center gap-2 text-primary">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-white">
-            <span className="material-symbols-outlined">description</span>
-          </div>
+          <LogoMark size={32} className="shrink-0" />
           <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             DocuMind AI
           </h2>
