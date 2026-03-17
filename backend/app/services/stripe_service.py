@@ -31,6 +31,8 @@ def create_checkout_session(db: Session, *, workspace_id: int, customer_email: s
     _ensure_stripe_configured()
     if not settings.stripe_price_pro_monthly:
         raise RuntimeError("STRIPE_PRICE_PRO_MONTHLY is not set")
+    if not str(settings.stripe_price_pro_monthly).startswith("price_"):
+        raise RuntimeError("STRIPE_PRICE_PRO_MONTHLY must be a Stripe Price ID (starts with price_)")
 
     sub_row = get_or_create_subscription_row(db, workspace_id=workspace_id)
 
@@ -60,7 +62,10 @@ def create_billing_portal_session(db: Session, *, workspace_id: int) -> str:
     _ensure_stripe_configured()
     sub_row = get_or_create_subscription_row(db, workspace_id=workspace_id)
     if not sub_row.stripe_customer_id:
-        raise RuntimeError("No Stripe customer for this workspace yet")
+        # Create a customer so the portal can be used even before first checkout.
+        cust = stripe.Customer.create(metadata={"workspace_id": str(workspace_id)})
+        sub_row.stripe_customer_id = str(cust.id)
+        db.commit()
     ps = stripe.billing_portal.Session.create(
         customer=sub_row.stripe_customer_id,
         return_url=settings.stripe_cancel_url,

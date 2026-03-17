@@ -46,7 +46,10 @@ def checkout(
     ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    url = create_checkout_session(db, workspace_id=workspace_id, customer_email=current_user.email)
+    try:
+        url = create_checkout_session(db, workspace_id=workspace_id, customer_email=current_user.email)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return CheckoutSessionOut(url=url)
 
 
@@ -59,7 +62,10 @@ def portal(
     ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    url = create_billing_portal_session(db, workspace_id=workspace_id)
+    try:
+        url = create_billing_portal_session(db, workspace_id=workspace_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return PortalSessionOut(url=url)
 
 
