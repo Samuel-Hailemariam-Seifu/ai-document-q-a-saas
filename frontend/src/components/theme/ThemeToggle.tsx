@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Icon } from '../common/Icon'
 
 type ThemePreference = 'system' | 'light' | 'dark'
 
@@ -67,9 +68,11 @@ export function ThemeToggle() {
       aria-label={`Theme: ${label}. Click to change.`}
       title={`Theme: ${label} (click to change)`}
     >
-      <span className="material-symbols-outlined text-base">
-        {pref === 'light' ? 'light_mode' : pref === 'dark' ? 'dark_mode' : 'contrast'}
-      </span>
+      <Icon
+        name={pref === 'light' ? 'sun' : pref === 'dark' ? 'moon' : 'system'}
+        size={16}
+        className="text-slate-700 dark:text-slate-200"
+      />
       <span>{label}</span>
     </button>
   )

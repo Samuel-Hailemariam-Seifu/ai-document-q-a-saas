@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { LogoMark } from '../components/brand/LogoMark'
 
 export function LandingPage() {
   return (
@@ -7,11 +8,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white">
-                <span className="material-symbols-outlined text-xl">
-                  auto_awesome
-                </span>
-              </div>
+              <LogoMark size={32} className="shrink-0" />
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                 DocuMind AI
               </span>
@@ -360,11 +357,7 @@ export function LandingPage() {
           <div className="mb-16 grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 lg:col-span-2">
               <div className="mb-6 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white">
-                  <span className="material-symbols-outlined text-xl">
-                    auto_awesome
-                  </span>
-                </div>
+                <LogoMark size={32} className="shrink-0" />
                 <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                   DocuMind AI
                 </span>
