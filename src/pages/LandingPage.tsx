@@ -115,7 +115,7 @@ export function LandingPage() {
                 </div>
               </div>
               <div className="relative">
-                <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary to-purple-600 opacity-20 blur-3xl" />
+                <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary to-emerald-600 opacity-20 blur-3xl" />
                 <div className="relative rounded-2xl border border-primary/20 bg-slate-100 p-2 shadow-2xl dark:bg-slate-900">
                   <div className="aspect-[4/3] overflow-hidden rounded-xl bg-white dark:bg-slate-950">
                     <img

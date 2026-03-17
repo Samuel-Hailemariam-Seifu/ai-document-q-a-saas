@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
 html,
 body,
@@ -8,4 +9,20 @@ body,
 
 body {
   margin: 0;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background-color: #f6f6f8;
+    color: #0f172a;
+    font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    background-color: #121022;
+    color: #f8fafc;
+  }
 }

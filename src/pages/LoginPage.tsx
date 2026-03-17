@@ -1,12 +1,34 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { login } from '../services/auth'
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const { refreshMe } = useAuth()
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    // Phase 2: wire to backend auth/login
+    setError(null)
+    setIsSubmitting(true)
+    try {
+      const form = new FormData(e.currentTarget as HTMLFormElement)
+      const email = String(form.get('email') ?? '')
+      const password = String(form.get('password') ?? '')
+      await login({ email, password })
+      await refreshMe()
+      const next = params.get('next')
+      navigate(next ? decodeURIComponent(next) : '/app', { replace: true })
+    } catch (err) {
+      const msg = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Login failed'
+      setError(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -39,6 +61,11 @@ export function LoginPage() {
           </div>
 
           <form className="space-y-5" onSubmit={onSubmit}>
+            {error ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+                {error}
+              </div>
+            ) : null}
             <div className="space-y-2">
               <label
                 className="text-sm font-medium text-slate-700 dark:text-slate-300"
@@ -52,6 +79,7 @@ export function LoginPage() {
                 </span>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@company.com"
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500"
@@ -78,6 +106,7 @@ export function LoginPage() {
                 </span>
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-12 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500"
@@ -112,7 +141,8 @@ export function LoginPage() {
 
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
+              disabled={isSubmitting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-60"
             >
               Sign in
               <span className="material-symbols-outlined text-xl">

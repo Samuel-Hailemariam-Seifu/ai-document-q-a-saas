@@ -288,7 +288,7 @@ export function ChatPage() {
                     'flex size-8 items-center justify-center rounded-lg',
                     c.icon === 'pdf'
                       ? 'bg-red-500/10 text-red-500'
-                      : 'bg-blue-500/10 text-blue-500',
+                      : 'bg-emerald-500/10 text-emerald-500',
                   ].join(' ')}
                 >
                   <span className="material-symbols-outlined text-[20px]">

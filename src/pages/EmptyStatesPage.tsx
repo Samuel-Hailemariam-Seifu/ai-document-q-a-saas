@@ -38,13 +38,13 @@ export function EmptyStatesPage() {
               <span className="material-symbols-outlined">dashboard</span>
               <span>Dashboard</span>
             </Link>
-            <a
+            <Link
               className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 transition-colors hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-primary/10"
-              href="#"
+              to="/app/documents"
             >
               <span className="material-symbols-outlined">description</span>
               <span>Documents</span>
-            </a>
+            </Link>
             <Link
               className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 transition-colors hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-primary/10"
               to="/app/chat"

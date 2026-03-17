@@ -1,12 +1,33 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { register } from '../services/auth'
 
 export function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { refreshMe } = useAuth()
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    // Phase 2: wire to backend auth/register
+    setError(null)
+    setIsSubmitting(true)
+    try {
+      const form = new FormData(e.currentTarget as HTMLFormElement)
+      const fullName = String(form.get('full_name') ?? '')
+      const email = String(form.get('email') ?? '')
+      const password = String(form.get('password') ?? '')
+      await register({ full_name: fullName, email, password })
+      await refreshMe()
+      navigate('/app', { replace: true })
+    } catch (err) {
+      const msg = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Signup failed'
+      setError(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -46,6 +67,11 @@ export function SignupPage() {
             </div>
 
             <form className="space-y-5" onSubmit={onSubmit}>
+              {error ? (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+                  {error}
+                </div>
+              ) : null}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Full Name
@@ -56,6 +82,7 @@ export function SignupPage() {
                   </span>
                   <input
                     type="text"
+                    name="full_name"
                     required
                     placeholder="Enter your name"
                     className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
@@ -73,6 +100,7 @@ export function SignupPage() {
                   </span>
                   <input
                     type="email"
+                    name="email"
                     required
                     placeholder="name@company.com"
                     className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
@@ -90,6 +118,7 @@ export function SignupPage() {
                   </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="password"
                     required
                     placeholder="Create a password"
                     className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
@@ -129,6 +158,7 @@ export function SignupPage() {
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98] hover:bg-primary/90"
               >
                 Create Account
