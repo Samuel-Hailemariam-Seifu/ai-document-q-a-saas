@@ -14,6 +14,8 @@ import {
 } from '../services/workspaces'
 import { useAuth } from '../auth/AuthContext'
 
+/* eslint-disable react-refresh/only-export-components */
+
 type WorkspaceState =
   | { status: 'loading' }
   | { status: 'ready'; items: Workspace[]; activeWorkspaceId: number | null }
@@ -85,9 +87,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authState.status === 'authenticated') {
-      void refresh()
+      const t = window.setTimeout(() => {
+        void refresh()
+      }, 0)
+      return () => window.clearTimeout(t)
     } else if (authState.status === 'anonymous') {
-      setState({ status: 'loading' })
+      const t = window.setTimeout(() => {
+        setState({ status: 'loading' })
+      }, 0)
+      return () => window.clearTimeout(t)
     }
   }, [authState.status, refresh])
 

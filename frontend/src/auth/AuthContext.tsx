@@ -10,6 +10,8 @@ import {
 import { clearStoredTokens, getStoredTokens } from './tokens'
 import { me, type User } from '../services/auth'
 
+/* eslint-disable react-refresh/only-export-components */
+
 type AuthState =
   | { status: 'loading' }
   | { status: 'anonymous' }
@@ -47,7 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    void refreshMe()
+    const t = window.setTimeout(() => {
+      void refreshMe()
+    }, 0)
+    return () => window.clearTimeout(t)
   }, [refreshMe])
 
   const value = useMemo<AuthContextValue>(

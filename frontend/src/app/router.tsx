@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { RootLayout } from '../components/layout/RootLayout'
+import { AppShellLayout } from '../components/layout/AppShellLayout'
 import { LandingPage } from '../pages/LandingPage'
 import { LoginPage } from '../pages/LoginPage'
 import { SignupPage } from '../pages/SignupPage'
@@ -18,13 +19,19 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
       {
+        path: '/app',
         element: <RequireAuth />,
         children: [
-          { path: '/app', element: <DashboardPage /> },
-          { path: '/app/documents', element: <DocumentsPage /> },
-          { path: '/app/chat', element: <ChatPage /> },
-          { path: '/app/documents/:documentId', element: <DocumentDetailPage /> },
-          { path: '/app/empty', element: <EmptyStatesPage /> },
+          {
+            element: <AppShellLayout />,
+            children: [
+              { index: true, element: <DashboardPage /> },
+              { path: 'documents', element: <DocumentsPage /> },
+              { path: 'chat', element: <ChatPage /> },
+              { path: 'documents/:documentId', element: <DocumentDetailPage /> },
+              { path: 'empty', element: <EmptyStatesPage /> },
+            ],
+          },
         ],
       },
     ],

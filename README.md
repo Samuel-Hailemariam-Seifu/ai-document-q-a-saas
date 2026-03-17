@@ -18,14 +18,17 @@ Production-style MVP that lets users:
 
 #### 1) Frontend
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Create `.env` from `.env.example` and set:
+Create `frontend/.env` from `frontend/.env.example` and set:
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
+
+Frontend docs live in `frontend/README.md`.
 
 #### 2) Backend
 ```bash

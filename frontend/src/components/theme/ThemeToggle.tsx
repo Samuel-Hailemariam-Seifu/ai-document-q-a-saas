@@ -20,7 +20,9 @@ function readInitialTheme(): ThemePreference {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
     if (v === 'light' || v === 'dark' || v === 'system') return v
-  } catch {}
+  } catch {
+    // ignore
+  }
   return 'system'
 }
 
@@ -43,7 +45,9 @@ export function ThemeToggle() {
     applyTheme(pref)
     try {
       localStorage.setItem(STORAGE_KEY, pref)
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, [pref])
 
   useEffect(() => {

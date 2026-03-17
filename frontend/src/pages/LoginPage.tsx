@@ -3,6 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { login } from '../services/auth'
 
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) return String((err as { message?: unknown }).message ?? '')
+  return ''
+}
+
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -24,7 +29,7 @@ export function LoginPage() {
       const next = params.get('next')
       navigate(next ? decodeURIComponent(next) : '/app', { replace: true })
     } catch (err) {
-      const msg = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Login failed'
+      const msg = errorMessage(err) || 'Login failed'
       setError(msg)
     } finally {
       setIsSubmitting(false)

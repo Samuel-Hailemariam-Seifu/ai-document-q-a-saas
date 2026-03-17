@@ -3,6 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { register } from '../services/auth'
 
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) return String((err as { message?: unknown }).message ?? '')
+  return ''
+}
+
 export function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,7 +28,7 @@ export function SignupPage() {
       await refreshMe()
       navigate('/app', { replace: true })
     } catch (err) {
-      const msg = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Signup failed'
+      const msg = errorMessage(err) || 'Signup failed'
       setError(msg)
     } finally {
       setIsSubmitting(false)
