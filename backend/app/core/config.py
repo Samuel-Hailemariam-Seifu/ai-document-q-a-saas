@@ -29,8 +29,10 @@ class Settings(BaseSettings):
     embedding_dim: int = 1536
     local_embedding_model: str = "BAAI/bge-small-en-v1.5"
     llm_model: str = "llama-3.1-8b-instant"  # Groq default; OpenAI uses its own model string
-    chunk_size: int = 900
-    chunk_overlap: int = 150
+    chunk_size: int = 2000
+    chunk_overlap: int = 250
+    retrieval_top_k: int = 12
+    retrieval_neighbor_window: int = 1
 
     @property
     def cors_origins_list(self) -> list[str]:

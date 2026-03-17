@@ -17,7 +17,8 @@ from app.schemas.chat import (
 from app.services.chat_service import add_message, create_chat, get_chat, list_chats, list_messages
 from app.services.embeddings_service import embed_texts
 from app.services.llm_service import generate_answer
-from app.services.retrieval_service import top_k_chunks_for_workspace
+from app.core.config import settings
+from app.services.retrieval_service import expand_with_neighbors, top_k_chunks_for_workspace
 from app.services.workspace_service import get_workspace
 
 router = APIRouter(tags=["chat"])
@@ -104,12 +105,21 @@ def ask(
     add_message(db, chat_id=c.id, role="user", content=payload.question)
 
     query_emb = embed_texts([payload.question])[0]
-    top = top_k_chunks_for_workspace(db, workspace_id=workspace_id, query_embedding=query_emb, k=6)
+    top = top_k_chunks_for_workspace(
+        db,
+        workspace_id=workspace_id,
+        query_embedding=query_emb,
+        k=settings.retrieval_top_k,
+    )
+    expanded_chunks = expand_with_neighbors(db, seed_chunks=[c for c, _s, _fn in top])
 
     citations: list[CitationOut] = []
     context_blocks: list[str] = []
-    for chunk, _score, filename in top:
-        excerpt = chunk.content[:400]
+    # Map doc_id -> filename from top hits
+    name_by_doc: dict[int, str] = {c.document_id: fn for c, _s, fn in top}
+    for chunk in expanded_chunks:
+        filename = name_by_doc.get(chunk.document_id, "document")
+        excerpt = chunk.content[:700]
         citations.append(
             CitationOut(
                 document_id=chunk.document_id,
