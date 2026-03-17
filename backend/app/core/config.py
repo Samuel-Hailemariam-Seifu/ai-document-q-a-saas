@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     run_ingest_inline: bool = False  # if True, run document ingestion in-process (no Redis/Celery needed)
     openai_api_key: str = ""
+    groq_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
     embedding_dim: int = 1536
+    local_embedding_model: str = "BAAI/bge-small-en-v1.5"
+    llm_model: str = "llama-3.1-8b-instant"  # Groq default; OpenAI uses its own model string
     chunk_size: int = 900
     chunk_overlap: int = 150
 

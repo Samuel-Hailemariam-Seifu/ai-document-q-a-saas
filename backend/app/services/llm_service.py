@@ -6,10 +6,15 @@ from app.core.config import settings
 
 
 def generate_answer(*, question: str, context_blocks: list[str]) -> str:
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
-
-    client = OpenAI(api_key=settings.openai_api_key)
+    # Prefer Groq (OpenAI-compatible) when configured, otherwise use OpenAI.
+    if settings.groq_api_key:
+        client = OpenAI(api_key=settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
+        model = settings.llm_model or "llama-3.1-8b-instant"
+    elif settings.openai_api_key:
+        client = OpenAI(api_key=settings.openai_api_key)
+        model = "gpt-4o-mini"
+    else:
+        raise RuntimeError("Set GROQ_API_KEY or OPENAI_API_KEY")
 
     context = "\n\n".join(context_blocks)
     system = (
@@ -21,7 +26,7 @@ def generate_answer(*, question: str, context_blocks: list[str]) -> str:
     user = f"Context:\n{context}\n\nQuestion:\n{question}"
 
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},

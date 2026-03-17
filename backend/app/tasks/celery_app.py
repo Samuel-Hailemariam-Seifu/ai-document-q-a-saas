@@ -22,5 +22,8 @@ celery_app.conf.update(
 # On Windows the default prefork pool causes PermissionError with billiard semaphores; use solo.
 if sys.platform == "win32":
     celery_app.conf.worker_pool = "solo"
+
+# Ensure tasks are always registered (containers + autodiscovery can be finicky)
+celery_app.conf.imports = ("app.tasks.document_tasks",)
 celery_app.autodiscover_tasks(["app.tasks"])
 
