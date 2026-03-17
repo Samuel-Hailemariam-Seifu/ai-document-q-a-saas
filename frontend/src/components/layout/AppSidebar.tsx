@@ -72,6 +72,10 @@ export function AppSidebar() {
           <span className="material-symbols-outlined">chat_bubble</span>
           <span>Chat</span>
         </NavLink>
+        <NavLink className={navClass} to="/app/billing">
+          <span className="material-symbols-outlined">payments</span>
+          <span>Billing</span>
+        </NavLink>
       </nav>
 
       <div className="border-t border-slate-200 p-4 dark:border-primary/20">

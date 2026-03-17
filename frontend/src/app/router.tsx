@@ -9,6 +9,7 @@ import { ChatPage } from '../pages/ChatPage.tsx'
 import { DocumentsPage } from '../pages/DocumentsPage.tsx'
 import { DocumentDetailPage } from '../pages/DocumentDetailPage.tsx'
 import { EmptyStatesPage } from '../pages/EmptyStatesPage.tsx'
+import { BillingPage } from '../pages/BillingPage.tsx'
 import { RequireAuth } from '../auth/RequireAuth'
 
 export const router = createBrowserRouter([
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
               { index: true, element: <DashboardPage /> },
               { path: 'documents', element: <DocumentsPage /> },
               { path: 'chat', element: <ChatPage /> },
+              { path: 'billing', element: <BillingPage /> },
               { path: 'documents/:documentId', element: <DocumentDetailPage /> },
               { path: 'empty', element: <EmptyStatesPage /> },
             ],

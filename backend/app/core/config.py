@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 12
     retrieval_neighbor_window: int = 1
 
+    # billing (Stripe)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_pro_monthly: str = ""
+    stripe_success_url: str = "http://localhost:5173/app/billing?status=success"
+    stripe_cancel_url: str = "http://localhost:5173/app/billing?status=cancel"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]

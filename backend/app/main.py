@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.billing import router as billing_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.workspaces import router as workspaces_router
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     app.include_router(workspaces_router)
     app.include_router(documents_router)
     app.include_router(chat_router)
+    app.include_router(billing_router)
 
     @app.get("/health")
     def health():
