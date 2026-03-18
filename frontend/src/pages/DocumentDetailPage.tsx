@@ -7,6 +7,7 @@ import {
   type DocumentChunkItem,
   type DocumentDetail,
 } from '../services/documents'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -35,6 +36,7 @@ export function DocumentDetailPage() {
   const [chunks, setChunks] = useState<DocumentChunkItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const id = documentId ? Number(documentId) : NaN
 
@@ -66,7 +68,7 @@ export function DocumentDetailPage() {
   }, [refresh])
 
   const onDelete = useCallback(async () => {
-    if (!doc || !window.confirm('Delete this document?')) return
+    if (!doc) return
     try {
       await deleteDocument(doc.id)
       navigate('/app/documents', { replace: true })
@@ -110,7 +112,7 @@ export function DocumentDetailPage() {
           <button
             className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600 transition-colors hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400"
             type="button"
-            onClick={onDelete}
+            onClick={() => setDeleteOpen(true)}
             aria-label="Delete"
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -230,6 +232,17 @@ export function DocumentDetailPage() {
         <p className="text-sm text-slate-500">Processing document… chunks will appear when ready.</p>
       )}
       {doc.status === 'pending' && <p className="text-sm text-slate-500">Document is queued for processing.</p>}
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete document?"
+        description="This removes the document and all processed chunks."
+        confirmLabel="Delete"
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false)
+          void onDelete()
+        }}
+      />
     </div>
   )
 }

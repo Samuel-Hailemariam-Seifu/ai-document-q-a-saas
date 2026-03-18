@@ -52,11 +52,9 @@ export function AppHeader() {
   }, [open])
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/70 px-4 backdrop-blur-md dark:border-primary/20 dark:bg-background-dark/60 md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/40 bg-white/20 px-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl md:px-6">
       <div className="flex min-w-0 items-center gap-3">
-        <h1 className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white md:text-base">
-          {title}
-        </h1>
+        <h1 className="truncate text-base font-extrabold tracking-tight text-slate-900">{title}</h1>
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
@@ -64,7 +62,7 @@ export function AppHeader() {
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white pl-2 pr-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-primary/20 dark:bg-primary/5 dark:text-slate-200 dark:hover:bg-primary/10"
+            className="flex h-9 items-center gap-2 rounded-full border border-white/70 bg-white/55 pl-2 pr-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white/70"
             onClick={() => setOpen((v) => !v)}
             aria-label="Open profile menu"
             aria-expanded={open}
@@ -76,34 +74,34 @@ export function AppHeader() {
           </button>
 
           {open ? (
-            <div className="absolute right-0 top-11 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-primary/20 dark:bg-background-dark">
+            <div className="absolute right-0 top-11 w-56 overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-xl backdrop-blur-xl">
               <div className="px-4 py-3">
-                <p className="text-sm font-extrabold text-slate-900 dark:text-white">
+                <p className="text-sm font-extrabold text-slate-900">
                   {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-0.5 truncate text-xs text-slate-500">
                   {authState.status === 'authenticated' ? authState.user.email : ''}
                 </p>
               </div>
-              <div className="h-px bg-slate-200 dark:bg-primary/20" />
+              <div className="h-px bg-slate-200" />
               <div className="p-2">
                 <Link
                   to="/app/settings"
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-primary/10"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   onClick={() => setOpen(false)}
                 >
-                  <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
+                  <span className="material-symbols-outlined text-[18px] text-slate-400">manage_accounts</span>
                   Profile
                 </Link>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-primary/10"
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   onClick={() => {
                     setOpen(false)
                     logout()
                   }}
                 >
-                  <span className="material-symbols-outlined text-[18px] text-slate-400">logout</span>
+                  <span className="material-symbols-outlined text-[18px] text-slate-400">exit_to_app</span>
                   Logout
                 </button>
               </div>

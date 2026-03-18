@@ -28,9 +28,9 @@ export function LogoMark({ size = 32, variant = 'default', className, ...rest }:
           y2="36"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#0d9668" />
-          <stop offset="0.5" stopColor="#10b981" />
-          <stop offset="1" stopColor="#34d399" />
+          <stop stopColor="#1d4ed8" />
+          <stop offset="0.5" stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#60a5fa" />
         </linearGradient>
       </defs>
       {/* Document: rounded rectangle */}

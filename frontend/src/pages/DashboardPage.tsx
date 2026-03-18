@@ -4,6 +4,7 @@ import { deleteDocument, listDocuments, uploadDocument, type DocumentListItem } 
 import { listRecentChats, type ChatPreview } from '../services/chat'
 import { getWorkspaceStats, type WorkspaceStats } from '../services/workspaces'
 import { useWorkspaces } from '../workspaces/WorkspaceContext'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -57,6 +58,7 @@ export function DashboardPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
   const workspaceId = state.status === 'ready' ? state.activeWorkspaceId : null
   const refreshDocs = useCallback(async () => {
@@ -129,7 +131,6 @@ export function DashboardPage() {
 
   const onDelete = useCallback(
     async (id: number) => {
-      if (!window.confirm('Delete this document?')) return
       try {
         await deleteDocument(id)
         await refreshDocs()
@@ -345,7 +346,7 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {recentChats.map((c) => (
+                  {recentChats.slice(0, 1).map((c) => (
                     <Link
                       key={c.id}
                       to={`/app/chat?chatId=${c.id}`}
@@ -438,7 +439,7 @@ export function DashboardPage() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => void onDelete(d.id)}
+                          onClick={() => setPendingDeleteId(d.id)}
                           className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-primary/10"
                           aria-label="Delete"
                         >
@@ -453,6 +454,18 @@ export function DashboardPage() {
           </table>
         </div>
       </section>
+      <ConfirmDialog
+        open={pendingDeleteId != null}
+        title="Delete document?"
+        description="This removes the document and all processed chunks."
+        confirmLabel="Delete"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          if (pendingDeleteId == null) return
+          void onDelete(pendingDeleteId)
+          setPendingDeleteId(null)
+        }}
+      />
     </div>
   )
 }

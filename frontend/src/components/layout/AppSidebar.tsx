@@ -7,16 +7,16 @@ import { LogoMark } from '../brand/LogoMark'
 
 function panelNavClass({ isActive }: { isActive: boolean }) {
   return [
-    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
     isActive
-      ? 'bg-primary text-white shadow-sm'
-      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-primary/10 dark:hover:text-white',
+      ? 'bg-white/22 text-white shadow-sm'
+      : 'text-slate-100/95 hover:bg-white/10 hover:text-white',
   ].join(' ')
 }
 
 function railNavClass({ isActive }: { isActive: boolean }) {
   return [
-    'group relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+    'group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all',
     isActive
       ? 'bg-white/25 text-white shadow-sm'
       : 'text-white/85 hover:bg-white/15 hover:text-white',
@@ -40,6 +40,14 @@ function writeCollapsed(v: boolean) {
     // ignore
   }
 }
+
+const NAV_ITEMS: Array<{ to: string; label: string; icon: string; end?: true }> = [
+  { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
+  { to: '/app/documents', label: 'Documents', icon: 'folder_data' },
+  { to: '/app/chat', label: 'Assistant', icon: 'auto_awesome' },
+  { to: '/app/billing', label: 'Billing', icon: 'credit_card' },
+  { to: '/app/settings', label: 'Settings', icon: 'tune' },
+]
 
 export function AppSidebar() {
   const { state, setActiveWorkspaceId, create } = useWorkspaces()
@@ -110,10 +118,11 @@ export function AppSidebar() {
   return (
     <aside
       className={[
-        'hidden shrink-0 border-r border-slate-200 bg-white/80 backdrop-blur dark:border-primary/20 dark:bg-background-dark/60 md:flex overflow-hidden transition-[width] duration-300 ease-in-out',
+        'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out',
         collapsed ? 'w-[92px]' : 'w-[320px]',
       ].join(' ')}
     >
+      
       {workspaceModalOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
@@ -194,9 +203,9 @@ export function AppSidebar() {
       <div className="flex h-full min-h-0 p-3">
         {/* Left icon rail */}
         {collapsed ? (
-          <div className="flex w-14 shrink-0 flex-col rounded-3xl bg-gradient-to-b from-indigo-500 to-violet-600 p-2 text-white shadow-lg shadow-indigo-500/20">
+          <div className="flex w-14 shrink-0 flex-col rounded-2xl border border-white/20 bg-white/10 p-2 text-white">
             <div className="flex flex-col items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm">
                 <LogoMark size={22} className="shrink-0" />
               </div>
               <button
@@ -213,13 +222,7 @@ export function AppSidebar() {
             </div>
 
             <nav className="mt-4 flex flex-1 flex-col items-center gap-2">
-              {[
-                { to: '/app', label: 'Dashboard', icon: 'home', end: true },
-                { to: '/app/documents', label: 'Documents', icon: 'description' },
-                { to: '/app/chat', label: 'Chat', icon: 'chat_bubble' },
-                { to: '/app/billing', label: 'Billing', icon: 'paid' },
-                { to: '/app/settings', label: 'Settings', icon: 'settings' },
-              ].map((it) => (
+              {NAV_ITEMS.map((it) => (
                 <NavLink
                   key={it.to}
                   className={railNavClass}
@@ -235,13 +238,6 @@ export function AppSidebar() {
             <div className="mt-auto flex flex-col items-center gap-2">
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
-                title="New analysis"
-              >
-                <span className="material-symbols-outlined text-[18px]">add</span>
-              </button>
-              <button
-                type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
                 onClick={() => logout()}
                 aria-label="Logout"
@@ -254,13 +250,23 @@ export function AppSidebar() {
         ) : null}
         {/* Right content panel (expanded) */}
         {!collapsed ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 ease-in-out dark:border-primary/20 dark:bg-background-dark">
-            <div className="border-b border-slate-200 px-3 py-3 dark:border-primary/20">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/10 transition-all duration-300 ease-in-out">
+            
+            <div className="border-b border-white/20 px-3 py-3">
+           
               {state.status === 'ready' ? (
-                <div className="flex items-center gap-1.5">
+                  <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white">
+                    <LogoMark size={18} className="shrink-0" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-extrabold tracking-tight text-white">DocuMind AI</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-200/90">Knowledge Workspace</p>
+                  </div>
                   <button
                     type="button"
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-primary/20 dark:bg-primary/5 dark:text-slate-200 dark:hover:bg-primary/10"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
                     aria-label="Collapse sidebar"
                     title="Collapse sidebar"
                     onClick={() => {
@@ -268,22 +274,27 @@ export function AppSidebar() {
                       writeCollapsed(true)
                     }}
                   >
-                    <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    <span className="material-symbols-outlined text-[18px]">menu_open</span>
                   </button>
+                  </div>
+                  
                   <div className="relative w-full" ref={workspaceMenuRef}>
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-slate-800 transition-colors hover:bg-white dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100 dark:hover:bg-primary/20"
+                      className="flex h-9 w-full items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 text-[13px] font-semibold text-white transition-colors hover:bg-white/20"
                       onClick={() => setWorkspaceOpen((v) => !v)}
                       aria-expanded={workspaceOpen}
                       aria-label="Select workspace"
                     >
-                      <span className="truncate pr-2">{activeWorkspaceName}</span>
-                      <span className="material-symbols-outlined text-[16px] text-slate-400">expand_more</span>
+                      <span className="flex min-w-0 items-center gap-2 truncate pr-2">
+                        <span className="material-symbols-outlined text-[16px] text-slate-200">workspaces</span>
+                        <span className="truncate">{activeWorkspaceName}</span>
+                      </span>
+                      <span className="material-symbols-outlined text-[16px] text-slate-200">expand_more</span>
                     </button>
 
                     {workspaceOpen ? (
-                      <div className="absolute right-0 top-11 z-30 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-primary/20 dark:bg-background-dark">
+                      <div className="absolute right-0 top-11 z-30 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#4f40d8] shadow-lg">
                         <div className="max-h-64 overflow-y-auto p-2">
                           {state.items.map((w) => {
                             const active = w.id === state.activeWorkspaceId
@@ -294,8 +305,8 @@ export function AppSidebar() {
                                 className={[
                                   'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
                                   active
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-primary/10',
+                                    ? 'bg-white/20 text-white'
+                                    : 'text-slate-100 hover:bg-white/10',
                                 ].join(' ')}
                                 onClick={() => {
                                   setActiveWorkspaceId(w.id)
@@ -314,7 +325,7 @@ export function AppSidebar() {
 
                   <button
                     type="button"
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-primary/20 dark:bg-primary/5 dark:text-slate-200 dark:hover:bg-primary/10"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
                     aria-label="Add workspace"
                     title="Add workspace"
                     onClick={() => {
@@ -323,25 +334,22 @@ export function AppSidebar() {
                       setWorkspaceModalOpen(true)
                     }}
                   >
-                    <span className="material-symbols-outlined text-[18px]">add</span>
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
                   </button>
                 </div>
               ) : (
-                <div className="h-9 w-full animate-pulse rounded-lg bg-slate-100 dark:bg-primary/10" />
+                <div className="h-9 w-full animate-pulse rounded-lg bg-white/10" />
               )}
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+              <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
               <nav className="space-y-1">
-                {[
-                  { to: '/app', label: 'Dashboard', icon: 'home', end: true },
-                  { to: '/app/documents', label: 'Documents', icon: 'description' },
-                  { to: '/app/chat', label: 'Chat', icon: 'chat_bubble' },
-                  { to: '/app/billing', label: 'Billing', icon: 'paid' },
-                  { to: '/app/settings', label: 'Settings', icon: 'settings' },
-                ].map((it) => (
+                {NAV_ITEMS.map((it) => (
                   <NavLink key={it.to} className={panelNavClass} to={it.to} end={it.end as true | undefined}>
-                    <span className="material-symbols-outlined text-[18px]">{it.icon}</span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+                      <span className="material-symbols-outlined text-[16px]">{it.icon}</span>
+                    </span>
                     <span>{it.label}</span>
                   </NavLink>
                 ))}
@@ -350,29 +358,32 @@ export function AppSidebar() {
               <div className="mt-5">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:bg-slate-50 dark:hover:bg-primary/10"
+                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/10"
                   onClick={() => setRecentOpen((v) => !v)}
                   aria-label="Toggle recent chats"
                 >
-                  <span>Recent chats</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[15px]">history</span>
+                    Recent chats
+                  </span>
                   <span className="material-symbols-outlined text-[18px]">{recentOpen ? 'expand_less' : 'expand_more'}</span>
                 </button>
 
                 {recentOpen ? (
                   <div className="mt-2 space-y-1">
                     {recentChats.length === 0 ? (
-                      <div className="px-2 py-2 text-sm text-slate-500 dark:text-slate-400">No recent chats.</div>
+                      <div className="px-2 py-2 text-sm text-slate-200/80">No recent chats.</div>
                     ) : (
                       recentChats.map((c) => (
                         <Link
                           key={c.id}
                           to={`/app/chat?chatId=${c.id}`}
-                          className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-primary/10"
+                          className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10"
                           title={c.title}
                           onClick={() => void refreshRecent()}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[16px] text-slate-400">chat_bubble</span>
+                            <span className="material-symbols-outlined text-[16px] text-slate-300">forum</span>
                             <span className="truncate">{c.title}</span>
                           </div>
                         </Link>
@@ -383,30 +394,30 @@ export function AppSidebar() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200 px-3 py-3 dark:border-primary/20">
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-primary/10">
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Get more power</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <div className="border-t border-white/20 px-3 py-3">
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-sm font-bold text-white">Get more power</p>
+                <p className="mt-1 text-xs text-slate-200/90">
                   Upgrade for higher limits and faster processing.
                 </p>
                 <Link
                   to="/app/billing"
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-primary/90"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-[#5b4ce6] transition-colors hover:bg-slate-100"
                 >
-                  <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
+                  <span className="material-symbols-outlined text-[16px]">diamond</span>
                   Go to billing
                 </Link>
               </div>
 
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-primary/20 dark:bg-primary/5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-xs font-extrabold text-primary">
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                  <p className="truncate text-sm font-bold text-white">
                     {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
                   </p>
-                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  <p className="truncate text-xs text-slate-200/90">
                     {authState.status === 'authenticated' ? authState.user.email : ''}
                   </p>
                 </div>

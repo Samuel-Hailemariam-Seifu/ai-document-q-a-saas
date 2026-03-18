@@ -15,7 +15,15 @@ from app.schemas.chat import (
     CitationOut,
     MessageOut,
 )
-from app.services.chat_service import add_message, create_chat, get_chat, list_chats, list_messages, list_recent_chat_previews
+from app.services.chat_service import (
+    add_message,
+    create_chat,
+    delete_chat,
+    get_chat,
+    list_chats,
+    list_messages,
+    list_recent_chat_previews,
+)
 from app.services.embeddings_service import embed_texts
 from app.services.llm_service import generate_answer
 from app.core.config import settings
@@ -113,6 +121,22 @@ def get_messages(
             )
         )
     return out
+
+
+@router.delete("/api/chats/{chat_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_chat(
+    chat_id: int,
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    c = get_chat(db, chat_id=chat_id, workspace_id=workspace_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    delete_chat(db, chat=c)
 
 
 @router.post("/api/workspaces/{workspace_id}/chat", response_model=AskResponse)

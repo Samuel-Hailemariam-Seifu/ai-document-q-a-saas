@@ -7,6 +7,7 @@ import {
   uploadDocument,
   type DocumentListItem,
 } from '../services/documents'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -42,6 +43,7 @@ export function DocumentsPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
   const workspaceId = wsState.status === 'ready' ? wsState.activeWorkspaceId : null
 
@@ -104,7 +106,6 @@ export function DocumentsPage() {
 
   const onDelete = useCallback(
     async (id: number) => {
-      if (!window.confirm('Delete this document?')) return
       try {
         await deleteDocument(id)
         await refresh()
@@ -220,7 +221,7 @@ export function DocumentsPage() {
                       <td className="px-6 py-4 text-right">
                         <button
                           type="button"
-                          onClick={() => onDelete(d.id)}
+                          onClick={() => setPendingDeleteId(d.id)}
                           className="p-2 text-slate-400 transition-colors hover:text-rose-500"
                           aria-label="Delete"
                         >
@@ -235,6 +236,18 @@ export function DocumentsPage() {
           </div>
         )}
       </section>
+      <ConfirmDialog
+        open={pendingDeleteId != null}
+        title="Delete document?"
+        description="This removes the document and all processed chunks."
+        confirmLabel="Delete"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          if (pendingDeleteId == null) return
+          void onDelete(pendingDeleteId)
+          setPendingDeleteId(null)
+        }}
+      />
     </div>
   )
 }

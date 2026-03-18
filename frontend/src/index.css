@@ -14,10 +14,7 @@ body {
 @layer base {
   body {
     margin: 0;
-    background:
-      radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.16), transparent 38%),
-      radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.1), transparent 36%),
-      linear-gradient(180deg, #f8f9ff 0%, #f3f5ff 48%, #eff2ff 100%);
+    background: #e0e3f2;
     color: #0f172a;
     font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -25,10 +22,7 @@ body {
   }
 
   .dark body {
-    background:
-      radial-gradient(circle at 14% 10%, rgba(99, 102, 241, 0.22), transparent 34%),
-      radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.12), transparent 30%),
-      linear-gradient(180deg, #131127 0%, #121022 52%, #100f1f 100%);
+    background: #e0e3f2;
     color: #f8fafc;
   }
 }
@@ -36,31 +30,25 @@ body {
 @layer utilities {
   /* Global gradient treatment for app wrappers using background utility tokens */
   .bg-background-light {
-    background:
-      radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.16), transparent 38%),
-      radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.1), transparent 36%),
-      linear-gradient(180deg, #f8f9ff 0%, #f3f5ff 48%, #eff2ff 100%);
+    background: #e0e3f2;
   }
 
   .dark .dark\:bg-background-dark {
-    background:
-      radial-gradient(circle at 14% 10%, rgba(99, 102, 241, 0.22), transparent 34%),
-      radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.12), transparent 30%),
-      linear-gradient(180deg, #131127 0%, #121022 52%, #100f1f 100%);
+    background: #e0e3f2;
   }
 }
 
 @layer components {
   .saas-board {
-    @apply rounded-[28px] border border-slate-200/80 bg-white/80 shadow-xl backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/80;
+    @apply rounded-none border-0 bg-[#e0e3f2] shadow-2xl;
   }
 
   .saas-card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-primary/20 dark:bg-primary/5;
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
   }
 
   .saas-card-muted {
-    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-primary/20 dark:bg-primary/10;
+    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm;
   }
 
   .saas-title {

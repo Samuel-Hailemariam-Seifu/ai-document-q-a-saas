@@ -59,6 +59,13 @@ export async function listMessages(chatId: number, workspaceId: number): Promise
   })
 }
 
+export async function deleteChat(chatId: number, workspaceId: number): Promise<void> {
+  await apiRequest<void>(`/api/chats/${chatId}?workspace_id=${workspaceId}`, {
+    method: 'DELETE',
+    auth: true,
+  })
+}
+
 export async function askQuestion(
   workspaceId: number,
   question: string,

@@ -23,6 +23,11 @@ def get_chat(db: Session, *, chat_id: int, workspace_id: int) -> Chat | None:
     return db.execute(select(Chat).where(Chat.id == chat_id, Chat.workspace_id == workspace_id)).scalar_one_or_none()
 
 
+def delete_chat(db: Session, *, chat: Chat) -> None:
+    db.delete(chat)
+    db.commit()
+
+
 def list_messages(db: Session, *, chat_id: int) -> list[Message]:
     return list(db.execute(select(Message).where(Message.chat_id == chat_id).order_by(Message.created_at.asc())).scalars().all())
 
