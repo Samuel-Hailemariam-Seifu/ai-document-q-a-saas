@@ -14,7 +14,10 @@ body {
 @layer base {
   body {
     margin: 0;
-    background-color: #f6f6f8;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.16), transparent 38%),
+      radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.1), transparent 36%),
+      linear-gradient(180deg, #f8f9ff 0%, #f3f5ff 48%, #eff2ff 100%);
     color: #0f172a;
     font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -22,7 +25,56 @@ body {
   }
 
   .dark body {
-    background-color: #121022;
+    background:
+      radial-gradient(circle at 14% 10%, rgba(99, 102, 241, 0.22), transparent 34%),
+      radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.12), transparent 30%),
+      linear-gradient(180deg, #131127 0%, #121022 52%, #100f1f 100%);
     color: #f8fafc;
+  }
+}
+
+@layer utilities {
+  /* Global gradient treatment for app wrappers using background utility tokens */
+  .bg-background-light {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.16), transparent 38%),
+      radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.1), transparent 36%),
+      linear-gradient(180deg, #f8f9ff 0%, #f3f5ff 48%, #eff2ff 100%);
+  }
+
+  .dark .dark\:bg-background-dark {
+    background:
+      radial-gradient(circle at 14% 10%, rgba(99, 102, 241, 0.22), transparent 34%),
+      radial-gradient(circle at 86% 14%, rgba(16, 185, 129, 0.12), transparent 30%),
+      linear-gradient(180deg, #131127 0%, #121022 52%, #100f1f 100%);
+  }
+}
+
+@layer components {
+  .saas-board {
+    @apply rounded-[28px] border border-slate-200/80 bg-white/80 shadow-xl backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/80;
+  }
+
+  .saas-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-primary/20 dark:bg-primary/5;
+  }
+
+  .saas-card-muted {
+    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-primary/20 dark:bg-primary/10;
+  }
+
+  .saas-title {
+    @apply text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .saas-subtitle {
+    @apply mt-1 text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .saas-gradient-panel {
+    background:
+      radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.22), transparent 34%),
+      linear-gradient(135deg, #4f6df5 0%, #5d4ce6 50%, #6d53ea 100%);
+    @apply rounded-2xl text-white shadow-lg shadow-indigo-500/20;
   }
 }

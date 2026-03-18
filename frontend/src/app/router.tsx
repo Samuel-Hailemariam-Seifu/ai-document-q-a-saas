@@ -13,6 +13,7 @@ import { DocumentsPage } from '../pages/DocumentsPage.tsx'
 import { DocumentDetailPage } from '../pages/DocumentDetailPage.tsx'
 import { EmptyStatesPage } from '../pages/EmptyStatesPage.tsx'
 import { BillingPage } from '../pages/BillingPage.tsx'
+import { SettingsPage } from '../pages/SettingsPage.tsx'
 import { RequireAuth } from '../auth/RequireAuth'
 
 export const router = createBrowserRouter([
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
               { index: true, element: <DashboardPage /> },
               { path: 'documents', element: <DocumentsPage /> },
               { path: 'billing', element: <BillingPage /> },
+              { path: 'settings', element: <SettingsPage /> },
               { path: 'documents/:documentId', element: <DocumentDetailPage /> },
               { path: 'empty', element: <EmptyStatesPage /> },
             ],

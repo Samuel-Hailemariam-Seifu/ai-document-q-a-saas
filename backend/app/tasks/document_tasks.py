@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -23,6 +25,8 @@ def ingest_document(document_id: int) -> None:
 
         doc.status = "processing"
         doc.error_message = None
+        doc.processing_started_at = datetime.now(timezone.utc)
+        doc.processing_finished_at = None
         db.commit()
 
         full_path = resolve_path(doc.file_path)
@@ -40,6 +44,7 @@ def ingest_document(document_id: int) -> None:
             doc.error_message = "No text extracted"
             doc.page_count = page_count
             doc.chunk_count = 0
+            doc.processing_finished_at = datetime.now(timezone.utc)
             db.commit()
             return
 
@@ -59,6 +64,7 @@ def ingest_document(document_id: int) -> None:
         doc.page_count = page_count
         doc.chunk_count = len(rows)
         doc.status = "ready"
+        doc.processing_finished_at = datetime.now(timezone.utc)
         db.commit()
     except Exception as e:  # noqa: BLE001
         db.close()
@@ -68,6 +74,7 @@ def ingest_document(document_id: int) -> None:
             if doc:
                 doc.status = "failed"
                 doc.error_message = str(e)[:1024]
+                doc.processing_finished_at = datetime.now(timezone.utc)
                 fail_db.commit()
         finally:
             fail_db.close()

@@ -1,45 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../common/Icon'
 
-type ThemePreference = 'system' | 'light' | 'dark'
+type ThemePreference = 'light' | 'dark'
 
 const STORAGE_KEY = 'theme'
 
-function getSystemPrefersDark() {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
-  )
-}
-
 function applyTheme(pref: ThemePreference) {
-  const isDark = pref === 'dark' || (pref === 'system' && getSystemPrefersDark())
+  const isDark = pref === 'dark'
   document.documentElement.classList.toggle('dark', isDark)
 }
 
 function readInitialTheme(): ThemePreference {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
-    if (v === 'light' || v === 'dark' || v === 'system') return v
+    if (v === 'light' || v === 'dark') return v
   } catch {
     // ignore
   }
-  return 'system'
+  return 'dark'
 }
 
 function nextTheme(pref: ThemePreference): ThemePreference {
-  if (pref === 'system') return 'light'
-  if (pref === 'light') return 'dark'
-  return 'system'
+  return pref === 'dark' ? 'light' : 'dark'
 }
 
 export function ThemeToggle() {
   const [pref, setPref] = useState<ThemePreference>(() => readInitialTheme())
 
   const label = useMemo(() => {
-    if (pref === 'system') return 'System'
-    if (pref === 'light') return 'Light'
-    return 'Dark'
+    return pref === 'light' ? 'Light' : 'Dark'
   }, [pref])
 
   useEffect(() => {
@@ -51,15 +40,6 @@ export function ThemeToggle() {
     }
   }, [pref])
 
-  useEffect(() => {
-    if (pref !== 'system') return
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
-    if (!mq) return
-    const onChange = () => applyTheme('system')
-    mq.addEventListener?.('change', onChange)
-    return () => mq.removeEventListener?.('change', onChange)
-  }, [pref])
-
   return (
     <button
       type="button"
@@ -68,11 +48,7 @@ export function ThemeToggle() {
       aria-label={`Theme: ${label}. Click to change.`}
       title={`Theme: ${label} (click to change)`}
     >
-      <Icon
-        name={pref === 'light' ? 'sun' : pref === 'dark' ? 'moon' : 'system'}
-        size={16}
-        className="text-slate-700 dark:text-slate-200"
-      />
+      <Icon name={pref === 'light' ? 'sun' : 'moon'} size={16} className="text-slate-700 dark:text-slate-200" />
       <span>{label}</span>
     </button>
   )

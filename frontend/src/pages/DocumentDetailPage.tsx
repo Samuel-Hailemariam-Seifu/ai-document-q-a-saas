@@ -120,8 +120,8 @@ export function DocumentDetailPage() {
 
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{doc.original_name}</h1>
-          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-primary/60">
+          <h1 className="saas-title">{doc.original_name}</h1>
+          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <span className="material-symbols-outlined text-xs">calendar_today</span>
             Uploaded {new Date(doc.created_at).toLocaleDateString()} • {formatSize(doc.file_size)}
           </p>
@@ -137,13 +137,23 @@ export function DocumentDetailPage() {
         </div>
       </div>
 
+      <div className="saas-gradient-panel p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/80">Document overview</p>
+            <p className="mt-1 text-lg font-bold">Status, pages, chunks, and extracted context</p>
+          </div>
+          <span className="material-symbols-outlined text-3xl text-white/90">description</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-primary/20 dark:bg-primary/10">
-          <p className="text-sm font-medium text-slate-500 dark:text-primary/70">Status</p>
+        <div className="saas-card p-6">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
           <div className="flex items-center justify-between">
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{statusInfo.label}</p>
             {statusInfo.healthy ? (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-500">
+              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-500">
                 <span className="material-symbols-outlined text-xs">check_circle</span>
                 Healthy
               </span>
@@ -155,44 +165,44 @@ export function DocumentDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-primary/20 dark:bg-primary/10">
-          <p className="text-sm font-medium text-slate-500 dark:text-primary/70">Chunks</p>
+        <div className="saas-card p-6">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Chunks</p>
           <div className="flex items-center justify-between">
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{doc.chunk_count}</p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-primary/20 dark:bg-primary/10">
-          <p className="text-sm font-medium text-slate-500 dark:text-primary/70">Pages</p>
+        <div className="saas-card p-6">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Pages</p>
           <div className="flex items-center justify-between">
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{doc.page_count ?? '—'}</p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-primary/20 dark:bg-primary/10">
+      <div className="saas-card p-6">
         <h4 className="mb-4 flex items-center gap-2 font-bold text-slate-900 dark:text-white">
           <span className="material-symbols-outlined text-primary">info</span>
           File Details
         </h4>
         <div className="space-y-4 text-sm">
           <div className="flex justify-between border-b border-slate-100 py-2 dark:border-primary/10">
-            <span className="text-slate-500 dark:text-primary/60">Type</span>
+            <span className="text-slate-500 dark:text-slate-400">Type</span>
             <span className="font-medium text-slate-900 dark:text-white">{doc.mime_type}</span>
           </div>
           <div className="flex justify-between border-b border-slate-100 py-2 dark:border-primary/10">
-            <span className="text-slate-500 dark:text-primary/60">Size</span>
+            <span className="text-slate-500 dark:text-slate-400">Size</span>
             <span className="font-medium text-slate-900 dark:text-white">{formatSize(doc.file_size)}</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-slate-500 dark:text-primary/60">Pages</span>
+            <span className="text-slate-500 dark:text-slate-400">Pages</span>
             <span className="font-medium text-slate-900 dark:text-white">{doc.page_count ?? '—'}</span>
           </div>
         </div>
       </div>
 
       {doc.status === 'ready' && chunks.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-primary/20 dark:bg-primary/5">
+        <div className="saas-card overflow-hidden">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 dark:border-primary/20 dark:bg-primary/10">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-primary/70">
               Extracted Chunks

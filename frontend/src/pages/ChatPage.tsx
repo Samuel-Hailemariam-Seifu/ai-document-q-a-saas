@@ -252,7 +252,7 @@ export function ChatPage() {
                   className={[
                     'mb-3 rounded-xl px-4 py-2 text-sm',
                     uploadMessage.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                      ? 'bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200'
                       : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200',
                   ].join(' ')}
                 >
@@ -333,7 +333,7 @@ export function ChatPage() {
                         'flex size-8 items-center justify-center rounded-lg',
                         c.filename.toLowerCase().endsWith('.pdf')
                           ? 'bg-red-500/10 text-red-500'
-                          : 'bg-emerald-500/10 text-emerald-500',
+                          : 'bg-blue-500/10 text-blue-500',
                       ].join(' ')}
                     >
                       <span className="material-symbols-outlined text-[20px]">

@@ -16,6 +16,14 @@ class ChatOut(BaseModel):
     created_at: datetime
 
 
+class ChatPreviewOut(BaseModel):
+    id: int
+    workspace_id: int
+    title: str
+    last_message_preview: str | None = None
+    last_message_at: datetime | None = None
+
+
 class CitationOut(BaseModel):
     document_id: int
     filename: str
