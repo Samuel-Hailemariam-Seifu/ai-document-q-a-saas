@@ -74,18 +74,18 @@ At a high level, each question follows a “retrieve → generate” workflow.
 
 ```mermaid
 flowchart TD
-  Q[User question] --> API[Backend /chat endpoint];
-  API -->|optional document_ids filter| RET[Retriever];
-  RET -->|embed question| QE[Query embedding];
-  RET -->|similarity search| VS[(Chunk embeddings in Postgres)];
-  VS --> TOPK[Top-K chunks];
-  TOPK --> NB[Neighbor expansion (optional)];
-  NB --> CTX[Context blocks + citations];
-  CTX --> PROMPT[Bounded prompt builder];
-  PROMPT --> LLM[LLM (Groq/OpenAI compatible)];
-  LLM --> ANS[Answer text];
-  CTX --> CITE[Citations (doc, chunk, page, excerpt)];
-  ANS --> OUT[API response];
+  Q["User question"] --> API["Backend /chat endpoint"];
+  API -->|"optional document_ids filter"| RET["Retriever"];
+  RET -->|"embed question"| QE["Query embedding"];
+  RET -->|"similarity search"| VS[("Chunk embeddings in Postgres")];
+  VS --> TOPK["Top K chunks"];
+  TOPK --> NB["Neighbor expansion optional"];
+  NB --> CTX["Context blocks and citations"];
+  CTX --> PROMPT["Bounded prompt builder"];
+  PROMPT --> LLM["LLM Groq/OpenAI compatible"];
+  LLM --> ANS["Answer text"];
+  CTX --> CITE["Citations doc/chunk/page/excerpt"];
+  ANS --> OUT["API response"];
   CITE --> OUT;
 ```
 
