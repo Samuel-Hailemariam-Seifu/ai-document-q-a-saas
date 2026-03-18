@@ -124,23 +124,75 @@ This makes responses verifiable and user-friendly.
 ### B) Architecture diagram (Mermaid)
 
 ```mermaid
-graph TD
-  U[User] --> F[Frontend (React SPA / Next.js-compatible)]
-  F -->|HTTPS JSON| API[FastAPI Backend]
+flowchart LR
+  U[User] --> FE[Frontend (React + Vite)]
+  FE -->|HTTPS JSON| API[Backend API (FastAPI)]
 
-  API --> DB[(PostgreSQL)]
-  API -->|store files| ST[Storage (Local / S3)]
-  API --> R[(Redis)]
+  subgraph Data[Data & storage]
+    DB[(PostgreSQL)]
+    FS[(File storage\nlocal volume / disk)]
+  end
 
-  R --> W[Celery Worker]
+  subgraph Async[Async ingestion]
+    R[(Redis queue/broker)]
+    W[Celery worker\nextract → chunk → embed → store]
+  end
+
+  subgraph Providers[External providers (optional)]
+    LLM[LLM provider\nGroq/OpenAI compatible]
+    EMB[Embeddings\nOpenAI or local FastEmbed]
+    STRIPE[Stripe Billing]
+    RESEND[Resend Email]
+  end
+
+  API --> DB
+  API --> FS
+  API --> R
+  R --> W
   W --> DB
-  W --> ST
+  W --> FS
 
-  API -->|LLM + Embeddings| OA[OpenAI API]
-  API -->|LLM (optional)| G[Groq API]
-  API -->|Email (optional)| E[Resend]
-  API -->|Billing| S[Stripe]
-  S -->|Webhooks| API
+  API -->|answers| LLM
+  API -->|embed query/chunks| EMB
+  API --> STRIPE
+  STRIPE -->|webhooks| API
+  API --> RESEND
+```
+
+### C) Request flow (Mermaid)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant FE as Frontend
+  participant API as FastAPI
+  participant FS as File storage
+  participant R as Redis
+  participant W as Celery worker
+  participant DB as Postgres
+  participant EMB as Embeddings
+  participant LLM as LLM
+
+  U->>FE: Upload document
+  FE->>API: POST /documents/upload
+  API->>FS: Save file
+  API->>DB: Create Document(status=pending)
+  API->>R: Enqueue ingest job (or inline)
+  R->>W: Dispatch job
+  W->>FS: Read file
+  W->>W: Extract text + chunk
+  W->>EMB: Embed chunks
+  W->>DB: Store chunks + embeddings\nDocument(status=ready)
+
+  U->>FE: Ask question (optionally docIds)
+  FE->>API: POST /chat {question, document_ids?}
+  API->>EMB: Embed question
+  API->>DB: Retrieve top chunks\n(filtered by document_ids if provided)
+  API->>LLM: Generate answer from context
+  API->>DB: Store messages + citations
+  API-->>FE: Answer + citations
+  FE-->>U: Render response + sources
 ```
 
 ---
