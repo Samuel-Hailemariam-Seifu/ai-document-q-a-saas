@@ -645,7 +645,7 @@ export function ChatPage() {
                   onChange={onFileSelect}
                   disabled={!activeWorkspaceId || uploading}
                 />
-                <div className="flex items-center gap-1 sm:gap-0">
+                <div className="flex w-full items-center gap-1 sm:gap-0">
                   <button
                     className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
                     type="button"
@@ -667,7 +667,7 @@ export function ChatPage() {
                     </span>
                   </button>
                   <input
-                    className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100 dark:placeholder:text-slate-500 sm:border-0 sm:bg-transparent sm:px-2 sm:py-3 sm:focus:ring-0"
+                    className="min-w-0 w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100 dark:placeholder:text-slate-500 sm:w-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-2 sm:py-3 sm:focus:ring-0"
                     placeholder="Ask a follow-up question..."
                     type="text"
                     value={draft}

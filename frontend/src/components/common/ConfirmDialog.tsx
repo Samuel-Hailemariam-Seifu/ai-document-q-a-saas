@@ -40,21 +40,23 @@ export function ConfirmDialog({
         if (e.target === e.currentTarget) onCancel()
       }}
     >
-      <div className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-5 shadow-2xl backdrop-blur-xl">
-        <h3 className="text-base font-extrabold tracking-tight text-slate-900">{title}</h3>
-        {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/85">
+        <div className="border-b border-slate-200/70 px-5 py-4 dark:border-primary/20">
+          <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">{title}</h3>
+          {description ? <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{description}</p> : null}
+        </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/10"
             onClick={onCancel}
           >
             {cancelLabel}
           </button>
           <button
             type="button"
-            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
+            className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
             onClick={onConfirm}
           >
             {confirmLabel}

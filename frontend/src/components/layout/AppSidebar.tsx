@@ -70,7 +70,7 @@ const NAV_ITEMS: Array<{ to: string; label: string; icon: string; end?: true }> 
   { to: '/app/documents', label: 'Documents', icon: 'folder_data' },
   { to: '/app/chat', label: 'Assistant', icon: 'auto_awesome' },
   { to: '/app/billing', label: 'Billing', icon: 'credit_card' },
-  { to: '/app/settings', label: 'Manage Account', icon: 'manage_accounts' },
+  // { to: '/app/settings', label: 'Manage Account', icon: 'manage_accounts' },
 ]
 
 export function AppSidebar({
