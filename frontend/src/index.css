@@ -22,7 +22,7 @@ body {
   }
 
   .dark body {
-    background: #e0e3f2;
+    background: #121022;
     color: #f8fafc;
   }
 }
@@ -34,21 +34,21 @@ body {
   }
 
   .dark .dark\:bg-background-dark {
-    background: #e0e3f2;
+    background: #121022;
   }
 }
 
 @layer components {
   .saas-board {
-    @apply rounded-none border-0 bg-[#e0e3f2] shadow-2xl;
+    @apply rounded-none border-0 bg-[#e0e3f2] shadow-2xl dark:bg-background-dark;
   }
 
   .saas-card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-primary/20 dark:bg-surface-dark;
   }
 
   .saas-card-muted {
-    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm;
+    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-primary/20 dark:bg-accent-dark;
   }
 
   .saas-title {

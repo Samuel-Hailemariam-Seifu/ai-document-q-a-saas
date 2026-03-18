@@ -13,8 +13,14 @@ export function AppShellLayout() {
           <AppSidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <AppHeader />
-            <main className="min-h-0 flex-1 overflow-hidden ">
-              <div className={isChatPage ? 'h-full min-h-0 overflow-hidden ' : 'h-full overflow-y-auto px-4 py-5 md:px-6 md:py-6' }>
+            <main className="min-h-0 flex-1 overflow-hidden">
+              <div
+                className={
+                  isChatPage
+                    ? 'h-full min-h-0 overflow-hidden'
+                    : 'custom-scrollbar h-full overflow-y-auto px-4 py-5 md:px-6 md:py-6'
+                }
+              >
                 <Outlet />
               </div>
             </main>
