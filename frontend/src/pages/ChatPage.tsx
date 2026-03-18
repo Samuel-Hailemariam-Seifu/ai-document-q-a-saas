@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { askQuestion, createChat, listChats, listMessages, type Chat, type Citation, type Message } from '../services/chat'
+import { uploadDocument } from '../services/documents'
 import { useWorkspaces } from '../workspaces/WorkspaceContext'
 
 export function ChatPage() {
@@ -14,6 +15,9 @@ export function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [citations, setCitations] = useState<Citation[]>([])
   const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const refreshChats = useCallback(async () => {
     if (!activeWorkspaceId) return
@@ -47,6 +51,27 @@ export function ChatPage() {
   const activeChatTitle = useMemo(() => {
     return chats.find((c) => c.id === activeChatId)?.title ?? 'Chat'
   }, [chats, activeChatId])
+
+  async function onFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !activeWorkspaceId) return
+    setUploadMessage(null)
+    setUploading(true)
+    try {
+      await uploadDocument(activeWorkspaceId, file)
+      setUploadMessage({ type: 'success', text: `"${file.name}" uploaded. It will be processed shortly.` })
+      setTimeout(() => setUploadMessage(null), 5000)
+    } catch (err) {
+      setUploadMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Upload failed',
+      })
+      setTimeout(() => setUploadMessage(null), 5000)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -98,8 +123,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="-mx-4 -my-6 h-full md:-mx-6 md:-my-8">
-      <div className="grid h-full grid-cols-1 gap-0 lg:grid-cols-[320px_1fr] xl:grid-cols-[320px_1fr_360px]">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-white dark:bg-background-dark">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[320px_1fr] xl:grid-cols-[320px_1fr_360px]">
         <aside className="hidden min-h-0 flex-col border-r border-slate-200 bg-white dark:border-primary/20 dark:bg-background-dark lg:flex">
           <div className="p-4">
             <button
@@ -151,9 +176,18 @@ export function ChatPage() {
         <section className="flex min-h-0 min-w-0 flex-col bg-white dark:bg-surface-dark xl:border-r xl:border-slate-200 xl:dark:border-primary/20">
           <div className="border-b border-slate-200 px-4 py-3 dark:border-primary/20">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{activeChatTitle}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Grounded answers with citations</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  to="/app"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-primary/10 dark:hover:text-slate-200"
+                  aria-label="Back to Dashboard"
+                >
+                  <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+                </Link>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{activeChatTitle}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Grounded answers with citations</p>
+                </div>
               </div>
               <div className="flex items-center gap-2 lg:hidden">
                 <select
@@ -213,12 +247,40 @@ export function ChatPage() {
 
           <div className="border-t border-slate-200 bg-white p-4 dark:border-primary/20 dark:bg-surface-dark md:p-6">
             <div className="relative mx-auto max-w-3xl">
+              {uploadMessage && (
+                <div
+                  className={[
+                    'mb-3 rounded-xl px-4 py-2 text-sm',
+                    uploadMessage.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                      : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200',
+                  ].join(' ')}
+                >
+                  {uploadMessage.text}
+                </div>
+              )}
               <form
                 className="flex items-center rounded-2xl bg-slate-100 p-2 pr-4 transition-all focus-within:ring-2 focus-within:ring-primary/50 dark:bg-primary/10"
                 onSubmit={onSubmit}
               >
-                <button className="p-2 text-slate-400 hover:text-primary" type="button" aria-label="Attach file">
-                  <span className="material-symbols-outlined">attach_file</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={onFileSelect}
+                  disabled={!activeWorkspaceId || uploading}
+                />
+                <button
+                  className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
+                  type="button"
+                  aria-label="Attach file"
+                  disabled={!activeWorkspaceId || uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <span className="material-symbols-outlined">
+                    {uploading ? 'hourglass_top' : 'attach_file'}
+                  </span>
                 </button>
                 <input
                   className="flex-1 border-none bg-transparent px-2 py-3 text-sm text-slate-900 placeholder:text-slate-500 focus:ring-0 dark:text-slate-100"

@@ -106,6 +106,21 @@ export function DashboardPage() {
         <p className="text-xs text-slate-400">Maximum file size: 25MB per document</p>
       </Link>
 
+      <Link
+        className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-colors hover:border-primary/30 dark:border-primary/20 dark:bg-primary/5"
+        to="/app/chat"
+      >
+        <div>
+          <h4 className="text-lg font-bold">Ask DocuMind AI</h4>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Chat with your workspace documents with citations.
+          </p>
+        </div>
+        <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="material-symbols-outlined text-2xl">chat_bubble</span>
+        </div>
+      </Link>
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-primary/20 dark:bg-primary/5">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-primary/20">
           <h3 className="text-lg font-bold">Recent Documents</h3>

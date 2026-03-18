@@ -29,12 +29,13 @@ export const router = createBrowserRouter([
         path: '/app',
         element: <RequireAuth />,
         children: [
+          // Full-page chat (not inside AppShellLayout)
+          { path: 'chat', element: <ChatPage /> },
           {
             element: <AppShellLayout />,
             children: [
               { index: true, element: <DashboardPage /> },
               { path: 'documents', element: <DocumentsPage /> },
-              { path: 'chat', element: <ChatPage /> },
               { path: 'billing', element: <BillingPage /> },
               { path: 'documents/:documentId', element: <DocumentDetailPage /> },
               { path: 'empty', element: <EmptyStatesPage /> },
