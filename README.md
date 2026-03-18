@@ -33,6 +33,7 @@ This repository is suitable as:
 
 ### Core Features
 - **Authentication (JWT)**: register/login, access + refresh tokens, current-user endpoint
+- **Profile management**: update profile (name/email) and change password
 - **Workspace management**: create/list/select workspaces (owned by the authenticated user)
 - **Document upload & management**:
   - Upload PDF/TXT/DOCX (server-side validation; **25MB** max per file)
@@ -48,6 +49,8 @@ This repository is suitable as:
   - Retrieval by cosine similarity (MVP computes similarity in Python; see “Future improvements” for pgvector)
 - **AI chat with documents**:
   - Workspace-scoped chats
+  - Document-scoped questions (attach one or more “papers in scope” to a chat prompt)
+  - Deep-link into chat from a document via `?docIds=...`
   - Stores messages and citations
 - **Citation-based answers**: chunk-level citations with excerpts + metadata
 - **Chat history**: list chats; fetch message history for a chat
@@ -63,6 +66,10 @@ This repository is suitable as:
   - Billing portal session
   - Webhook handler to sync subscription status into the database
 - **Email flows (optional)**: verify email + reset password via Resend (no-op if not configured)
+- **Responsive chat UI**:
+  - Collapsible “Chats” and “Sources” sidebars (desktop)
+  - Mobile bottom-sheets for sidebars (small screens)
+  - “Select all ready papers” + “Clear all papers”
 
 ---
 
@@ -197,7 +204,7 @@ docker-compose.yml  # Local production-like stack (db, redis, api, worker, front
 ```bash
 cd backend
 python -m venv .venv
-.\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\python -m pip install -r requirements.txt
 copy .env.example .env
 .\.venv\Scripts\python -m alembic upgrade head
 .\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
@@ -233,6 +240,14 @@ Set env vars in your shell (at minimum one of `GROQ_API_KEY` or `OPENAI_API_KEY`
 
 ```bash
 docker compose up --build
+```
+
+### Running with Docker (dev override)
+
+If you use the dev compose override in this repo, run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 Services:
@@ -297,6 +312,8 @@ High-level endpoints (REST):
 - `POST /login`
 - `POST /refresh`
 - `GET /me`
+- `PUT /profile`
+- `POST /change-password`
 - `POST /request-verification`
 - `POST /verify-email`
 - `POST /forgot-password`
