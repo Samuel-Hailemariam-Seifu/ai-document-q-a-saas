@@ -16,6 +16,7 @@ export default {
       },
       fontFamily: {
         display: ['Inter', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
+        heading: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '0.5rem',

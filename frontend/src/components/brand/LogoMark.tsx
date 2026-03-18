@@ -2,14 +2,16 @@ import type { ComponentProps } from 'react'
 
 type Props = {
   size?: number
+  variant?: 'default' | 'light'
 } & Omit<ComponentProps<'svg'>, 'width' | 'height' | 'viewBox' | 'xmlns'>
 
-export function LogoMark({ size = 32, className, ...rest }: Props) {
+export function LogoMark({ size = 32, variant = 'default', className, ...rest }: Props) {
+  const fillOpacity = variant === 'light' ? 0.85 : 1
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 64 64"
+      viewBox="0 0 40 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -18,24 +20,36 @@ export function LogoMark({ size = 32, className, ...rest }: Props) {
       {...rest}
     >
       <defs>
-        <linearGradient id="documind_g" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7C3AED" />
-          <stop offset="1" stopColor="#10B981" />
+        <linearGradient
+          id="documind-premium-g"
+          x1="4"
+          y1="4"
+          x2="36"
+          y2="36"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#0d9668" />
+          <stop offset="0.5" stopColor="#10b981" />
+          <stop offset="1" stopColor="#34d399" />
         </linearGradient>
       </defs>
-      <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#documind_g)" />
-      <path
-        d="M34.5 13.5c-7.1 2.4-9.6 4.9-12 12-2.4-7.1-4.9-9.6-12-12 7.1-2.4 9.6-4.9 12-12 2.4 7.1 4.9 9.6 12 12Z"
-        fill="white"
-        opacity="0.95"
-        transform="translate(0 18)"
+      {/* Document: rounded rectangle */}
+      <rect
+        x="6"
+        y="6"
+        width="22"
+        height="28"
+        rx="6"
+        fill="url(#documind-premium-g)"
+        fillOpacity={fillOpacity}
       />
-      <path
-        d="M49.2 31.6c-4.4 1.5-5.9 3-7.4 7.4-1.5-4.4-3-5.9-7.4-7.4 4.4-1.5 5.9-3 7.4-7.4 1.5 4.4 3 5.9 7.4 7.4Z"
-        fill="white"
-        opacity="0.9"
-      />
+      {/* Text lines */}
+      <rect x="11" y="14" width="10" height="1.5" rx="0.75" fill="white" fillOpacity="0.95" />
+      <rect x="11" y="18" width="13" height="1.5" rx="0.75" fill="white" fillOpacity="0.8" />
+      <rect x="11" y="22" width="8" height="1.5" rx="0.75" fill="white" fillOpacity="0.65" />
+      {/* Mind / AI spark */}
+      <circle cx="28" cy="12" r="5" fill="white" />
+      <circle cx="28" cy="12" r="2.5" fill="url(#documind-premium-g)" />
     </svg>
   )
 }
-
