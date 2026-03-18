@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { login } from '../services/auth'
+import { LogoMark } from '../components/brand/LogoMark'
 
 function errorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'message' in err) return String((err as { message?: unknown }).message ?? '')
@@ -41,11 +42,7 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center">
           <div className="mb-2 flex items-center gap-3">
-            <div className="rounded-lg bg-primary p-2 text-white">
-              <span className="material-symbols-outlined text-3xl">
-                auto_stories
-              </span>
-            </div>
+            <LogoMark size={40} className="shrink-0" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               DocuMind AI
             </h1>
@@ -101,9 +98,9 @@ export function LoginPage() {
                 >
                   Password
                 </label>
-                <a className="text-xs font-semibold text-primary hover:underline" href="#">
+                <Link className="text-xs font-semibold text-primary hover:underline" to="/forgot-password">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl text-slate-400">

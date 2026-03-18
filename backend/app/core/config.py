@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     stripe_success_url: str = "http://localhost:5173/app/billing?status=success"
     stripe_cancel_url: str = "http://localhost:5173/app/billing?status=cancel"
 
+    # email (Resend) + auth flows
+    frontend_base_url: str = "http://localhost:5173"
+    resend_api_key: str = ""
+    email_from: str = "DocuMind <onboarding@resend.dev>"
+    require_email_verification: bool = False
+    verify_token_expire_hours: int = 24
+    reset_token_expire_minutes: int = 30
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
+import { LogoMark } from '../brand/LogoMark'
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
@@ -16,9 +17,7 @@ export function AppSidebar() {
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-primary/20 dark:bg-background-dark md:flex">
       <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-white">
-          <span className="material-symbols-outlined">auto_awesome</span>
-        </div>
+        <LogoMark size={36} className="shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-sm font-extrabold tracking-tight text-slate-900 dark:text-white">
             DocuMind AI

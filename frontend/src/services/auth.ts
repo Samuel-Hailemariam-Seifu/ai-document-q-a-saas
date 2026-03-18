@@ -5,6 +5,7 @@ export type User = {
   id: number
   full_name: string
   email: string
+  email_verified: boolean
 }
 
 export async function register(input: {
@@ -36,5 +37,37 @@ export async function login(input: {
 
 export async function me(): Promise<User> {
   return apiRequest<User>('/api/auth/me', { method: 'GET', auth: true })
+}
+
+export async function requestVerification(email: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/auth/request-verification', {
+    method: 'POST',
+    auth: false,
+    body: { email },
+  })
+}
+
+export async function verifyEmail(token: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/auth/verify-email', {
+    method: 'POST',
+    auth: false,
+    body: { token },
+  })
+}
+
+export async function forgotPassword(email: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/auth/forgot-password', {
+    method: 'POST',
+    auth: false,
+    body: { email },
+  })
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/auth/reset-password', {
+    method: 'POST',
+    auth: false,
+    body: { token, new_password: newPassword },
+  })
 }
 
