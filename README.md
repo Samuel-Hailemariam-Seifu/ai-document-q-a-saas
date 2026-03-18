@@ -70,6 +70,25 @@ This repository is suitable as:
 
 At a high level, each question follows a “retrieve → generate” workflow.
 
+### RAG overview diagram (Mermaid)
+
+```mermaid
+flowchart TD
+  Q[User question] --> API[Backend /chat endpoint];
+  API -->|optional document_ids filter| RET[Retriever];
+  RET -->|embed question| QE[Query embedding];
+  RET -->|similarity search| VS[(Chunk embeddings in Postgres)];
+  VS --> TOPK[Top-K chunks];
+  TOPK --> NB[Neighbor expansion (optional)];
+  NB --> CTX[Context blocks + citations];
+  CTX --> PROMPT[Bounded prompt builder];
+  PROMPT --> LLM[LLM (Groq/OpenAI compatible)];
+  LLM --> ANS[Answer text];
+  CTX --> CITE[Citations (doc, chunk, page, excerpt)];
+  ANS --> OUT[API response];
+  CITE --> OUT;
+```
+
 ### 1) Document ingestion
 1. User uploads a document to a workspace.
 2. The backend stores the file and creates a `Document` row with status `pending`.
@@ -125,22 +144,22 @@ This makes responses verifiable and user-friendly.
 
 ```mermaid
 flowchart LR
-  U[User] --> FE[Frontend (React + Vite)]
-  FE -->|HTTPS JSON| API[Backend API (FastAPI)]
+  U[User] --> FE[Frontend (React + Vite)];
+  FE -->|HTTPS JSON| API[Backend API (FastAPI)];
 
-  subgraph Data[Data & storage]
+  subgraph Data[Data and storage]
     DB[(PostgreSQL)]
-    FS[(File storage\nlocal volume / disk)]
+    FS[(File storage<br/>local volume / disk)]
   end
 
   subgraph Async[Async ingestion]
     R[(Redis queue/broker)]
-    W[Celery worker\nextract → chunk → embed → store]
+    W[Celery worker<br/>extract -> chunk -> embed -> store]
   end
 
   subgraph Providers[External providers (optional)]
-    LLM[LLM provider\nGroq/OpenAI compatible]
-    EMB[Embeddings\nOpenAI or local FastEmbed]
+    LLM[LLM provider<br/>Groq/OpenAI compatible]
+    EMB[Embeddings<br/>OpenAI or local FastEmbed]
     STRIPE[Stripe Billing]
     RESEND[Resend Email]
   end
@@ -152,11 +171,11 @@ flowchart LR
   W --> DB
   W --> FS
 
-  API -->|answers| LLM
-  API -->|embed query/chunks| EMB
-  API --> STRIPE
-  STRIPE -->|webhooks| API
-  API --> RESEND
+  API -->|answers| LLM;
+  API -->|embed query/chunks| EMB;
+  API --> STRIPE;
+  STRIPE -->|webhooks| API;
+  API --> RESEND;
 ```
 
 ### C) Request flow (Mermaid)
@@ -439,7 +458,9 @@ Practical upgrades for a production SaaS:
 
 ## 📄 License
 
-MIT (placeholder). Add a `LICENSE` file to formalize usage terms.
+This project is **proprietary** and **personally owned**.
+
+See `LICENSE` for terms (no license is granted unless explicitly stated there).
 
 ---
 
