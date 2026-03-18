@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -27,10 +29,21 @@ from app.services.chat_service import (
 from app.services.embeddings_service import embed_texts
 from app.services.llm_service import generate_answer
 from app.core.config import settings
-from app.services.retrieval_service import expand_with_neighbors, top_k_chunks_for_workspace
+from app.services.retrieval_service import (
+    expand_with_neighbors,
+    first_chunks_for_documents,
+    top_k_chunks_for_workspace,
+)
 from app.services.workspace_service import get_workspace
 
 router = APIRouter(tags=["chat"])
+logger = logging.getLogger(__name__)
+
+
+def _is_summary_question(q: str) -> bool:
+    text = (q or "").lower()
+    triggers = ("summarize", "summary", "summarise", "give me a summary", "overview", "tl;dr", "tldr")
+    return any(t in text for t in triggers)
 
 
 @router.get("/api/workspaces/{workspace_id}/chats", response_model=list[ChatOut])
@@ -160,22 +173,34 @@ def ask(
 
     add_message(db, chat_id=c.id, role="user", content=payload.question)
 
-    query_emb = embed_texts([payload.question])[0]
-    top = top_k_chunks_for_workspace(
-        db,
-        workspace_id=workspace_id,
-        query_embedding=query_emb,
-        k=settings.retrieval_top_k,
-    )
-    expanded_chunks = expand_with_neighbors(db, seed_chunks=[c for c, _s, _fn in top])
+    selected_document_ids = None
+    if payload.document_ids:
+        selected_document_ids = sorted({int(doc_id) for doc_id in payload.document_ids if int(doc_id) > 0})
+
+    # For summary-style questions, semantic top-k often misses the paper body.
+    # Instead, pull the first chunks (intro/abstract) from the selected docs.
+    top: list[tuple] = []
+    if selected_document_ids and _is_summary_question(payload.question):
+        expanded_chunks = first_chunks_for_documents(db, document_ids=selected_document_ids, per_document=4)
+        name_by_doc = {}
+    else:
+        query_emb = embed_texts([payload.question])[0]
+        top = top_k_chunks_for_workspace(
+            db,
+            workspace_id=workspace_id,
+            query_embedding=query_emb,
+            k=settings.retrieval_top_k,
+            document_ids=selected_document_ids,
+        )
+        expanded_chunks = expand_with_neighbors(db, seed_chunks=[c for c, _s, _fn in top])
+        # Map doc_id -> filename from top hits
+        name_by_doc: dict[int, str] = {c.document_id: fn for c, _s, fn in top}
 
     citations: list[CitationOut] = []
     context_blocks: list[str] = []
-    # Map doc_id -> filename from top hits
-    name_by_doc: dict[int, str] = {c.document_id: fn for c, _s, fn in top}
     for chunk in expanded_chunks:
-        filename = name_by_doc.get(chunk.document_id, "document")
-        excerpt = chunk.content[:700]
+        filename = name_by_doc.get(chunk.document_id, f"document {chunk.document_id}")
+        excerpt = chunk.content[:900]
         citations.append(
             CitationOut(
                 document_id=chunk.document_id,
@@ -185,9 +210,23 @@ def ask(
                 excerpt=excerpt,
             )
         )
-        context_blocks.append(f"[{filename} | chunk {chunk.id} | page {chunk.page_number}]\n{chunk.content}")
+        # Keep per-chunk content bounded to reduce prompt size.
+        context_blocks.append(
+            f"[{filename} | chunk {chunk.id} | page {chunk.page_number}]\n{chunk.content[:1800]}"
+        )
 
-    answer = generate_answer(question=payload.question, context_blocks=context_blocks)
+    try:
+        answer = generate_answer(question=payload.question, context_blocks=context_blocks)
+    except Exception as exc:
+        logger.exception("LLM provider request failed")
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"LLM provider request failed ({type(exc).__name__}). "
+                "Check API credentials, model access, request size, and outbound network access "
+                "to OpenAI/Groq from the backend container."
+            ),
+        ) from exc
 
     add_message(
         db,

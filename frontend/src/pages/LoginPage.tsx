@@ -38,8 +38,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-light p-4 font-display text-slate-900 dark:bg-background-dark dark:text-slate-100 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background-light p-4 font-display text-slate-900 dark:bg-background-dark dark:text-slate-100 flex flex-col items-center">
+      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
         <div className="mb-8 flex flex-col items-center">
           <div className="mb-2 flex items-center gap-3">
             <LogoMark size={40} className="shrink-0" />
@@ -188,7 +188,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
           Don&apos;t have an account?{' '}
           <Link className="font-semibold text-primary hover:underline" to="/signup">
             Sign up for free
@@ -196,7 +196,7 @@ export function LoginPage() {
         </p>
       </div>
 
-      <div className="fixed bottom-6 flex gap-6 text-xs text-slate-500 dark:text-slate-600">
+      <div className="mt-8 flex flex-wrap justify-center gap-6 text-xs text-slate-500 dark:text-slate-600">
         <a className="transition-colors hover:text-slate-900 dark:hover:text-slate-300" href="#">
           Privacy Policy
         </a>

@@ -44,6 +44,7 @@ class MessageOut(BaseModel):
 class AskRequest(BaseModel):
     chat_id: int | None = None
     question: str = Field(min_length=1, max_length=8000)
+    document_ids: list[int] | None = None
 
 
 class AskResponse(BaseModel):

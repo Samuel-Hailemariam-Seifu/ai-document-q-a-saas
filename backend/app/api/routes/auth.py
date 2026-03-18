@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.models.user import User
 from app.schemas.auth import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     OkResponse,
@@ -18,11 +19,18 @@ from app.schemas.auth import (
     RequestVerificationRequest,
     ResetPasswordRequest,
     TokenPair,
+    UpdateProfileRequest,
     UserOut,
     VerifyEmailRequest,
 )
 from app.core.security import hash_password
-from app.services.auth_service import authenticate_user, create_user, get_user_by_email
+from app.services.auth_service import (
+    authenticate_user,
+    change_user_password,
+    create_user,
+    get_user_by_email,
+    update_user_profile,
+)
 from app.services.email_service import send_email
 from app.services.token_service import consume_token, create_token
 
@@ -89,6 +97,37 @@ def refresh(payload: RefreshRequest) -> TokenPair:
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut(id=current_user.id, full_name=current_user.full_name, email=current_user.email, email_verified=current_user.email_verified)
+
+
+@router.put("/profile", response_model=UserOut)
+def update_profile(
+    payload: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserOut:
+    try:
+        user = update_user_profile(db, user=current_user, full_name=payload.full_name, email=str(payload.email))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return UserOut(id=user.id, full_name=user.full_name, email=user.email, email_verified=user.email_verified)
+
+
+@router.post("/change-password", response_model=OkResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OkResponse:
+    try:
+        change_user_password(
+            db,
+            user=current_user,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return OkResponse()
 
 
 @router.post("/request-verification", response_model=OkResponse)

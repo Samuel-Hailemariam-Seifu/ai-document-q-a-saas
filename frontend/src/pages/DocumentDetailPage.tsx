@@ -130,7 +130,7 @@ export function DocumentDetailPage() {
         </div>
         <div className="flex gap-3">
           <Link
-            to="/app/chat"
+            to={`/app/chat?docIds=${doc.id}`}
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             <span className="material-symbols-outlined text-[18px]">psychology</span>

@@ -10,6 +10,32 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 
 
+def first_chunks_for_documents(
+    db: Session,
+    *,
+    document_ids: list[int],
+    per_document: int = 4,
+) -> list[DocumentChunk]:
+    """Return the first N chunks (by chunk_index) for each document id."""
+    if not document_ids:
+        return []
+    n = max(1, min(12, int(per_document)))
+    out: list[DocumentChunk] = []
+    for doc_id in document_ids:
+        rows = (
+            db.execute(
+                select(DocumentChunk)
+                .where(DocumentChunk.document_id == doc_id)
+                .order_by(DocumentChunk.chunk_index)
+                .limit(n)
+            )
+            .scalars()
+            .all()
+        )
+        out.extend(list(rows))
+    return out
+
+
 def _dot(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b, strict=False))
 
@@ -27,17 +53,25 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 def top_k_chunks_for_workspace(
-    db: Session, *, workspace_id: int, query_embedding: list[float], k: int = 6
+    db: Session,
+    *,
+    workspace_id: int,
+    query_embedding: list[float],
+    k: int = 6,
+    document_ids: list[int] | None = None,
 ) -> list[tuple[DocumentChunk, float, str]]:
     """
     Returns [(chunk, score, document_original_name)] for documents in workspace.
     In MVP (no pgvector), compute similarity in Python.
     """
-    rows = db.execute(
+    stmt = (
         select(DocumentChunk, Document.original_name)
         .join(Document, Document.id == DocumentChunk.document_id)
         .where(Document.workspace_id == workspace_id, Document.status == "ready")
-    ).all()
+    )
+    if document_ids:
+        stmt = stmt.where(Document.id.in_(document_ids))
+    rows = db.execute(stmt).all()
 
     scored: list[tuple[DocumentChunk, float, str]] = []
     for chunk, doc_name in rows:

@@ -4,6 +4,30 @@ import { useAuth } from '../../auth/AuthContext'
 import { listRecentChats, type ChatPreview } from '../../services/chat'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
 import { LogoMark } from '../brand/LogoMark'
+import { ThemeToggle } from '../theme/ThemeToggle'
+
+type ThemePreference = 'light' | 'dark'
+const THEME_KEY = 'theme'
+
+function readTheme(): ThemePreference {
+  try {
+    const v = localStorage.getItem(THEME_KEY)
+    if (v === 'light' || v === 'dark') return v
+  } catch {
+    // ignore
+  }
+  return 'dark'
+}
+
+function applyTheme(pref: ThemePreference) {
+  const isDark = pref === 'dark'
+  document.documentElement.classList.toggle('dark', isDark)
+  try {
+    localStorage.setItem(THEME_KEY, pref)
+  } catch {
+    // ignore
+  }
+}
 
 function panelNavClass({ isActive }: { isActive: boolean }) {
   return [
@@ -46,13 +70,20 @@ const NAV_ITEMS: Array<{ to: string; label: string; icon: string; end?: true }> 
   { to: '/app/documents', label: 'Documents', icon: 'folder_data' },
   { to: '/app/chat', label: 'Assistant', icon: 'auto_awesome' },
   { to: '/app/billing', label: 'Billing', icon: 'credit_card' },
-  { to: '/app/settings', label: 'Settings', icon: 'tune' },
+  // { to: '/app/settings', label: 'Manage Account', icon: 'manage_accounts' },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({
+  mobile,
+  onRequestClose,
+}: {
+  mobile?: boolean
+  onRequestClose?: () => void
+}) {
   const { state, setActiveWorkspaceId, create } = useWorkspaces()
   const { state: authState, logout } = useAuth()
-  const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed())
+  const [collapsed, setCollapsed] = useState<boolean>(() => (mobile ? false : readCollapsed()))
+  const [theme, setTheme] = useState<ThemePreference>(() => readTheme())
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
@@ -115,11 +146,26 @@ export function AppSidebar() {
     return active?.name ?? 'Workspace'
   }, [state])
 
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
+
+  useEffect(() => {
+    if (!mobile) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onRequestClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobile, onRequestClose])
+
   return (
     <aside
       className={[
-        'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out',
-        collapsed ? 'w-[92px]' : 'w-[320px]',
+        mobile
+          ? 'fixed inset-y-0 left-0 z-50 flex w-[320px] max-w-[85vw] shrink-0 bg-[#5b4ce6] text-white shadow-2xl dark:bg-background-dark'
+          : 'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out dark:bg-background-dark',
+        mobile ? '' : collapsed ? 'w-[92px]' : 'w-[320px]',
       ].join(' ')}
     >
       
@@ -202,12 +248,18 @@ export function AppSidebar() {
 
       <div className="flex h-full min-h-0 p-3">
         {/* Left icon rail */}
-        {collapsed ? (
+        {collapsed && !mobile ? (
           <div className="flex w-14 shrink-0 flex-col rounded-2xl border border-white/20 bg-white/10 p-2 text-white">
             <div className="flex flex-col items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm">
+              <Link
+                to="/app"
+                onClick={() => onRequestClose?.()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm transition-transform hover:scale-[1.02] dark:bg-surface-dark dark:text-white"
+                aria-label="Go to home"
+                title="Home"
+              >
                 <LogoMark size={22} className="shrink-0" />
-              </div>
+              </Link>
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
@@ -229,6 +281,7 @@ export function AppSidebar() {
                   to={it.to}
                   end={it.end as true | undefined}
                   title={it.label}
+                    onClick={() => onRequestClose?.()}
                 >
                   <span className="material-symbols-outlined text-[18px]">{it.icon}</span>
                 </NavLink>
@@ -236,6 +289,17 @@ export function AppSidebar() {
             </nav>
 
             <div className="mt-auto flex flex-col items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
+                onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {theme === 'dark' ? 'dark_mode' : 'light_mode'}
+                </span>
+              </button>
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
@@ -250,21 +314,39 @@ export function AppSidebar() {
         ) : null}
         {/* Right content panel (expanded) */}
         {!collapsed ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/10 transition-all duration-300 ease-in-out">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/10 transition-all duration-300 ease-in-out dark:border-primary/20 dark:bg-surface-dark/60">
             
             <div className="border-b border-white/20 px-3 py-3">
            
               {state.status === 'ready' ? (
                   <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white">
+                  <Link
+                    to="/app"
+                    onClick={() => onRequestClose?.()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white transition-transform hover:scale-[1.02] dark:border-primary/20 dark:bg-surface-dark"
+                    aria-label="Go to home"
+                    title="Home"
+                  >
                     <LogoMark size={18} className="shrink-0" />
-                  </div>
+                  </Link>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-extrabold tracking-tight text-white">DocuMind AI</p>
                     <p className="text-[10px] uppercase tracking-[0.16em] text-slate-200/90">Knowledge Workspace</p>
                   </div>
-                  <button
+                  {mobile ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
+                      aria-label="Close menu"
+                      title="Close"
+                      onClick={() => onRequestClose?.()}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  ) : null}
+                  {!mobile ? (
+                    <button
                     type="button"
                     className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
                     aria-label="Collapse sidebar"
@@ -275,90 +357,99 @@ export function AppSidebar() {
                     }}
                   >
                     <span className="material-symbols-outlined text-[18px]">menu_open</span>
-                  </button>
+                    </button>
+                  ) : null}
                   </div>
                   
-                  <div className="relative w-full" ref={workspaceMenuRef}>
+                  <div className="flex items-center gap-2">
+                    <div className="relative min-w-0 flex-1" ref={workspaceMenuRef}>
+                      <button
+                        type="button"
+                        className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-[13px] font-semibold text-white transition-colors hover:bg-white/20 dark:border-primary/20 dark:bg-primary/10 dark:hover:bg-primary/15"
+                        onClick={() => setWorkspaceOpen((v) => !v)}
+                        aria-expanded={workspaceOpen}
+                        aria-label="Select workspace"
+                      >
+                        <span className="flex min-w-0 items-center gap-2 truncate">
+                          <span className="material-symbols-outlined text-[16px] text-slate-200">workspaces</span>
+                          <span className="truncate">{activeWorkspaceName}</span>
+                        </span>
+                        <span className="material-symbols-outlined text-[16px] text-slate-200">expand_more</span>
+                      </button>
+
+                      {workspaceOpen ? (
+                        <div className="absolute right-0 top-11 z-30 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#4f40d8] shadow-lg dark:border-primary/20 dark:bg-surface-dark">
+                          <div className="custom-scrollbar max-h-64 overflow-y-auto p-2">
+                            {state.items.map((w) => {
+                              const active = w.id === state.activeWorkspaceId
+                              return (
+                                <button
+                                  key={w.id}
+                                  type="button"
+                                  className={[
+                                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
+                                    active ? 'bg-white/20 text-white' : 'text-slate-100 hover:bg-white/10',
+                                  ].join(' ')}
+                                  onClick={() => {
+                                    setActiveWorkspaceId(w.id)
+                                    setWorkspaceOpen(false)
+                                  }}
+                                >
+                                  <span className="truncate">{w.name}</span>
+                                  {active ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 text-[13px] font-semibold text-white transition-colors hover:bg-white/20"
-                      onClick={() => setWorkspaceOpen((v) => !v)}
-                      aria-expanded={workspaceOpen}
-                      aria-label="Select workspace"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
+                      aria-label="Add workspace"
+                      title="Add workspace"
+                      onClick={() => {
+                        setWorkspaceOpen(false)
+                        setWorkspaceName('')
+                        setWorkspaceModalOpen(true)
+                      }}
                     >
-                      <span className="flex min-w-0 items-center gap-2 truncate pr-2">
-                        <span className="material-symbols-outlined text-[16px] text-slate-200">workspaces</span>
-                        <span className="truncate">{activeWorkspaceName}</span>
-                      </span>
-                      <span className="material-symbols-outlined text-[16px] text-slate-200">expand_more</span>
+                      <span className="material-symbols-outlined text-[18px]">add_circle</span>
                     </button>
-
-                    {workspaceOpen ? (
-                      <div className="absolute right-0 top-11 z-30 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#4f40d8] shadow-lg">
-                        <div className="max-h-64 overflow-y-auto p-2">
-                          {state.items.map((w) => {
-                            const active = w.id === state.activeWorkspaceId
-                            return (
-                              <button
-                                key={w.id}
-                                type="button"
-                                className={[
-                                  'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
-                                  active
-                                    ? 'bg-white/20 text-white'
-                                    : 'text-slate-100 hover:bg-white/10',
-                                ].join(' ')}
-                                onClick={() => {
-                                  setActiveWorkspaceId(w.id)
-                                  setWorkspaceOpen(false)
-                                }}
-                              >
-                                <span className="truncate">{w.name}</span>
-                                {active ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
-
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
-                    aria-label="Add workspace"
-                    title="Add workspace"
-                    onClick={() => {
-                      setWorkspaceOpen(false)
-                      setWorkspaceName('')
-                      setWorkspaceModalOpen(true)
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                  </button>
                 </div>
               ) : (
                 <div className="h-9 w-full animate-pulse rounded-lg bg-white/10" />
               )}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
-              <nav className="space-y-1">
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-3">
+              <div className="px-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
+              </div>
+              <nav className="mt-2 space-y-1">
                 {NAV_ITEMS.map((it) => (
-                  <NavLink key={it.to} className={panelNavClass} to={it.to} end={it.end as true | undefined}>
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+                  <NavLink
+                    key={it.to}
+                    className={panelNavClass}
+                    to={it.to}
+                    end={it.end as true | undefined}
+                    onClick={() => onRequestClose?.()}
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 ">
                       <span className="material-symbols-outlined text-[16px]">{it.icon}</span>
                     </span>
-                    <span>{it.label}</span>
+                    <span className="text-[13px] font-semibold">{it.label}</span>
                   </NavLink>
                 ))}
               </nav>
 
-              <div className="mt-5">
+              <div className="mt-5 rounded-2xl border border-white/15 bg-white/5 p-2">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/10"
+                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-200/90 transition-colors hover:bg-white/10"
                   onClick={() => setRecentOpen((v) => !v)}
                   aria-label="Toggle recent chats"
                 >
@@ -370,7 +461,7 @@ export function AppSidebar() {
                 </button>
 
                 {recentOpen ? (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-1 space-y-1">
                     {recentChats.length === 0 ? (
                       <div className="px-2 py-2 text-sm text-slate-200/80">No recent chats.</div>
                     ) : (
@@ -380,7 +471,10 @@ export function AppSidebar() {
                           to={`/app/chat?chatId=${c.id}`}
                           className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10"
                           title={c.title}
-                          onClick={() => void refreshRecent()}
+                          onClick={() => {
+                            void refreshRecent()
+                            onRequestClose?.()
+                          }}
                         >
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[16px] text-slate-300">forum</span>
@@ -394,33 +488,59 @@ export function AppSidebar() {
               </div>
             </div>
 
-            <div className="border-t border-white/20 px-3 py-3">
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-sm font-bold text-white">Get more power</p>
-                <p className="mt-1 text-xs text-slate-200/90">
-                  Upgrade for higher limits and faster processing.
-                </p>
-                <Link
-                  to="/app/billing"
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-[#5b4ce6] transition-colors hover:bg-slate-100"
-                >
-                  <span className="material-symbols-outlined text-[16px]">diamond</span>
-                  Go to billing
-                </Link>
+            <div className="border-t border-white/20 px-3 py-3 dark:border-primary/20">
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Account</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-white">
+                      {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
+                    </p>
+                    <p className="truncate text-xs text-slate-200/90">
+                      {authState.status === 'authenticated' ? authState.user.email : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <ThemeToggle />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      to="/app/settings"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                      onClick={() => logout()}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      Logout
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
-                  {initials}
+              <div className="mt-3 rounded-2xl bg-white/10 p-3 dark:bg-primary/10">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-white">Get more power</p>
+                    <p className="mt-1 text-xs text-slate-200/90">Upgrade for higher limits and faster processing.</p>
+                  </div>
+                  <span className="material-symbols-outlined text-white/80">diamond</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-white">
-                    {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
-                  </p>
-                  <p className="truncate text-xs text-slate-200/90">
-                    {authState.status === 'authenticated' ? authState.user.email : ''}
-                  </p>
-                </div>
+                <Link
+                  to="/app/billing"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-extrabold text-[#5b4ce6] transition-colors hover:bg-slate-100 dark:bg-background-dark dark:text-slate-100 dark:hover:bg-primary/10"
+                >
+                  Manage plan
+                </Link>
               </div>
             </div>
           </div>
