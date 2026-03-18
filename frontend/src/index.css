@@ -14,7 +14,7 @@ body {
 @layer base {
   body {
     margin: 0;
-    background-color: #f6f6f8;
+    background: #e0e3f2;
     color: #0f172a;
     font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -22,7 +22,47 @@ body {
   }
 
   .dark body {
-    background-color: #121022;
+    background: #e0e3f2;
     color: #f8fafc;
+  }
+}
+
+@layer utilities {
+  /* Global gradient treatment for app wrappers using background utility tokens */
+  .bg-background-light {
+    background: #e0e3f2;
+  }
+
+  .dark .dark\:bg-background-dark {
+    background: #e0e3f2;
+  }
+}
+
+@layer components {
+  .saas-board {
+    @apply rounded-none border-0 bg-[#e0e3f2] shadow-2xl;
+  }
+
+  .saas-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .saas-card-muted {
+    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm;
+  }
+
+  .saas-title {
+    @apply text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .saas-subtitle {
+    @apply mt-1 text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .saas-gradient-panel {
+    background:
+      radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.22), transparent 34%),
+      linear-gradient(135deg, #4f6df5 0%, #5d4ce6 50%, #6d53ea 100%);
+    @apply rounded-2xl text-white shadow-lg shadow-indigo-500/20;
   }
 }

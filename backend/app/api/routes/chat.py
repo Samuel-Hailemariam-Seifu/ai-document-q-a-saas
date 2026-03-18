@@ -11,10 +11,19 @@ from app.schemas.chat import (
     AskResponse,
     ChatCreate,
     ChatOut,
+    ChatPreviewOut,
     CitationOut,
     MessageOut,
 )
-from app.services.chat_service import add_message, create_chat, get_chat, list_chats, list_messages
+from app.services.chat_service import (
+    add_message,
+    create_chat,
+    delete_chat,
+    get_chat,
+    list_chats,
+    list_messages,
+    list_recent_chat_previews,
+)
 from app.services.embeddings_service import embed_texts
 from app.services.llm_service import generate_answer
 from app.core.config import settings
@@ -35,6 +44,37 @@ def get_chats(
         raise HTTPException(status_code=404, detail="Workspace not found")
     items = list_chats(db, workspace_id=workspace_id)
     return [ChatOut(id=c.id, workspace_id=c.workspace_id, title=c.title, created_at=c.created_at) for c in items]
+
+
+@router.get("/api/workspaces/{workspace_id}/chats/recent", response_model=list[ChatPreviewOut])
+def recent_chats(
+    workspace_id: int,
+    limit: int = 8,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[ChatPreviewOut]:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    rows = list_recent_chat_previews(db, workspace_id=workspace_id, limit=limit)
+    out: list[ChatPreviewOut] = []
+    for c, m in rows:
+        preview = None
+        last_at = None
+        if m is not None:
+            last_at = m.created_at
+            text = (m.content or "").strip()
+            preview = text[:140] if text else None
+        out.append(
+            ChatPreviewOut(
+                id=c.id,
+                workspace_id=c.workspace_id,
+                title=c.title,
+                last_message_preview=preview,
+                last_message_at=last_at,
+            )
+        )
+    return out
 
 
 @router.post("/api/workspaces/{workspace_id}/chats", response_model=ChatOut, status_code=status.HTTP_201_CREATED)
@@ -81,6 +121,22 @@ def get_messages(
             )
         )
     return out
+
+
+@router.delete("/api/chats/{chat_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_chat(
+    chat_id: int,
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    ws = get_workspace(db, workspace_id=workspace_id, owner_id=current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    c = get_chat(db, chat_id=chat_id, workspace_id=workspace_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    delete_chat(db, chat=c)
 
 
 @router.post("/api/workspaces/{workspace_id}/chat", response_model=AskResponse)

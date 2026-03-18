@@ -10,7 +10,9 @@ function msg(err: unknown): string {
 export function VerifyEmailPage() {
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
-  const [state, setState] = useState<'idle' | 'verifying' | 'ok' | 'error'>('idle')
+  const [state, setState] = useState<'idle' | 'verifying' | 'ok' | 'error'>(() =>
+    token.length >= 10 ? 'verifying' : 'idle',
+  )
   const [error, setError] = useState<string | null>(null)
 
   const hasToken = useMemo(() => token.length >= 10, [token])
@@ -18,7 +20,6 @@ export function VerifyEmailPage() {
   useEffect(() => {
     if (!hasToken) return
     let cancelled = false
-    setState('verifying')
     void verifyEmail(token)
       .then(() => {
         if (cancelled) return
@@ -43,7 +44,7 @@ export function VerifyEmailPage() {
         ) : state === 'verifying' ? (
           <p className="mt-4 text-sm text-slate-500">Verifying…</p>
         ) : state === 'ok' ? (
-          <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
             Email verified. You can now log in.
           </div>
         ) : state === 'error' ? (

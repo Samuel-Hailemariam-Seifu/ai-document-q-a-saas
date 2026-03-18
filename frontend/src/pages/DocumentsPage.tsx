@@ -7,6 +7,7 @@ import {
   uploadDocument,
   type DocumentListItem,
 } from '../services/documents'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -17,7 +18,7 @@ function formatSize(bytes: number): string {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case 'ready':
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
     case 'processing':
     case 'pending':
       return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
@@ -42,6 +43,7 @@ export function DocumentsPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
   const workspaceId = wsState.status === 'ready' ? wsState.activeWorkspaceId : null
 
@@ -104,7 +106,6 @@ export function DocumentsPage() {
 
   const onDelete = useCallback(
     async (id: number) => {
-      if (!window.confirm('Delete this document?')) return
       try {
         await deleteDocument(id)
         await refresh()
@@ -124,12 +125,22 @@ export function DocumentsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">My Documents</h1>
-        <p className="text-slate-500 dark:text-slate-400">
+        <h1 className="saas-title">My Documents</h1>
+        <p className="saas-subtitle">
           Upload PDF, TXT, or DOCX (max 25MB). Processing runs in the background.
         </p>
+      </div>
+
+      <div className="saas-gradient-panel p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/80">Workspace Library</p>
+            <p className="mt-1 text-lg font-bold">All files are searchable and citation-ready</p>
+          </div>
+          <span className="material-symbols-outlined text-3xl text-white/90">folder</span>
+        </div>
       </div>
 
       <section className="flex flex-col gap-6">
@@ -140,10 +151,10 @@ export function DocumentsPage() {
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
-          className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition-colors ${
+          className={`saas-card flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 transition-colors ${
             dragOver
               ? 'border-primary bg-primary/5'
-              : 'border-slate-300 bg-slate-100 dark:border-primary/20 dark:bg-primary/5'
+              : 'border-slate-300'
           }`}
         >
           <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -167,13 +178,13 @@ export function DocumentsPage() {
         {loading ? (
           <div className="h-32 animate-pulse rounded-xl bg-slate-100 dark:bg-primary/10" />
         ) : docs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-100 py-16 dark:border-primary/10 dark:bg-primary/5">
+          <div className="saas-card-muted flex flex-col items-center justify-center py-16">
             <span className="material-symbols-outlined mb-4 text-5xl text-slate-400">description</span>
             <h3 className="text-lg font-bold">No documents yet</h3>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Upload your first file above.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-primary/20 dark:bg-primary/5">
+          <div className="saas-card overflow-hidden">
             <div className="border-b border-slate-200 px-6 py-4 dark:border-primary/20">
               <h3 className="text-lg font-bold">Recent Documents</h3>
             </div>
@@ -210,7 +221,7 @@ export function DocumentsPage() {
                       <td className="px-6 py-4 text-right">
                         <button
                           type="button"
-                          onClick={() => onDelete(d.id)}
+                          onClick={() => setPendingDeleteId(d.id)}
                           className="p-2 text-slate-400 transition-colors hover:text-rose-500"
                           aria-label="Delete"
                         >
@@ -225,6 +236,18 @@ export function DocumentsPage() {
           </div>
         )}
       </section>
+      <ConfirmDialog
+        open={pendingDeleteId != null}
+        title="Delete document?"
+        description="This removes the document and all processed chunks."
+        confirmLabel="Delete"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          if (pendingDeleteId == null) return
+          void onDelete(pendingDeleteId)
+          setPendingDeleteId(null)
+        }}
+      />
     </div>
   )
 }

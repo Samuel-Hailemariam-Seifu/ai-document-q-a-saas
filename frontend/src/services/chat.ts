@@ -7,6 +7,14 @@ export type Chat = {
   created_at: string
 }
 
+export type ChatPreview = {
+  id: number
+  workspace_id: number
+  title: string
+  last_message_preview: string | null
+  last_message_at: string | null
+}
+
 export type Citation = {
   document_id: number
   filename: string
@@ -28,6 +36,14 @@ export async function listChats(workspaceId: number): Promise<Chat[]> {
   return apiRequest<Chat[]>(`/api/workspaces/${workspaceId}/chats`, { method: 'GET', auth: true })
 }
 
+export async function listRecentChats(workspaceId: number, limit = 6): Promise<ChatPreview[]> {
+  const lim = Math.max(1, Math.min(20, Math.floor(limit)))
+  return apiRequest<ChatPreview[]>(`/api/workspaces/${workspaceId}/chats/recent?limit=${lim}`, {
+    method: 'GET',
+    auth: true,
+  })
+}
+
 export async function createChat(workspaceId: number, title?: string): Promise<Chat> {
   return apiRequest<Chat>(`/api/workspaces/${workspaceId}/chats`, {
     method: 'POST',
@@ -39,6 +55,13 @@ export async function createChat(workspaceId: number, title?: string): Promise<C
 export async function listMessages(chatId: number, workspaceId: number): Promise<Message[]> {
   return apiRequest<Message[]>(`/api/chats/${chatId}/messages?workspace_id=${workspaceId}`, {
     method: 'GET',
+    auth: true,
+  })
+}
+
+export async function deleteChat(chatId: number, workspaceId: number): Promise<void> {
+  await apiRequest<void>(`/api/chats/${chatId}?workspace_id=${workspaceId}`, {
+    method: 'DELETE',
     auth: true,
   })
 }

@@ -1,0 +1,32 @@
+services:
+  backend:
+    volumes:
+      # Live-reload backend code inside container
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    volumes:
+      # Keep worker code in sync with backend
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+
+  frontend:
+    volumes:
+      # Live-reload frontend code inside container
+      - ./frontend:/app
+      # Keep container's node_modules (avoid overwriting with host)
+      - frontend_node_modules:/app/node_modules
+    environment:
+      # Improves file watching reliability on Windows + Docker
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+
+volumes:
+  frontend_node_modules:
+
