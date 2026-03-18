@@ -86,6 +86,8 @@ export function ChatPage() {
   const searchDocIds = useMemo(() => parseDocumentIds(searchParams.get('docIds')), [searchParams])
 
   const [uiPrefs, setUiPrefs] = useState<{ left: boolean; right: boolean }>(() => readChatUiPrefs())
+  const [mobileChatsOpen, setMobileChatsOpen] = useState(false)
+  const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false)
 
   const [draft, setDraft] = useState('')
   const [chats, setChats] = useState<Chat[]>([])
@@ -376,8 +378,8 @@ export function ChatPage() {
   }, [uiPrefs.left, uiPrefs.right])
 
   return (
-    <div className="relative h-screen overflow-hidden bg-transparent" >
-      <div className={['px-4 py-5 md:px-6 md:py-6 grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-3', gridClass].join(' ')}>
+    <div className="relative h-[100dvh] overflow-hidden bg-transparent">
+      <div className={['px-3 py-3 sm:px-4 sm:py-5 md:px-6 md:py-6 grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-3', gridClass].join(' ')}>
         {uiPrefs.left ? (
           <aside className=" hidden h-full min-h-0 flex-col rounded-3xl border border-slate-200/80 bg-white/75 shadow-lg backdrop-blur-xl lg:flex dark:border-primary/20 dark:bg-background-dark/60">
           <div className="border-b border-slate-200/70 px-4 py-4">
@@ -469,7 +471,7 @@ export function ChatPage() {
           </aside>
         ) : null}
 
-        <section  className="  flex h-full min-h-0 min-w-0 flex-col rounded-3xl border border-slate-200/80 bg-white/70 shadow-lg backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/60">
+        <section className="flex h-full min-h-0 min-w-0 flex-col rounded-3xl border border-slate-200/80 bg-white/70 shadow-lg backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/60 sm:rounded-3xl sm:border-slate-200/80 border-transparent sm:border">
           <div className="border-b border-slate-200/70 px-5 py-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -486,6 +488,25 @@ export function ChatPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Mobile quick access */}
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-white dark:border-primary/20 dark:bg-background-dark/60 dark:text-slate-200 dark:hover:bg-primary/10 lg:hidden"
+                  onClick={() => setMobileChatsOpen(true)}
+                  aria-label="Open chats"
+                  title="Chats"
+                >
+                  <span className="material-symbols-outlined text-[16px]">forum</span>
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-white dark:border-primary/20 dark:bg-background-dark/60 dark:text-slate-200 dark:hover:bg-primary/10 lg:hidden"
+                  onClick={() => setMobileSourcesOpen(true)}
+                  aria-label="Open sources"
+                  title="Sources"
+                >
+                  <span className="material-symbols-outlined text-[16px]">menu_book</span>
+                </button>
                 <button
                   type="button"
                   className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-white lg:inline-flex dark:border-primary/20 dark:bg-background-dark/60 dark:text-slate-200 dark:hover:bg-primary/10"
@@ -592,8 +613,9 @@ export function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div  className="border-t border-slate-200/70 bg-white/75 p-4 backdrop-blur md:p-6 rounded-3xl dark:border-primary/20 dark:bg-background-dark/60">
-            <div className="relative mx-auto max-w-3xl">
+          <div className="border-t border-slate-200/70 bg-white/75 p-3 backdrop-blur md:p-6 rounded-3xl dark:border-primary/20 dark:bg-background-dark/60 sm:p-4"
+               style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+            <div className="relative w-full sm:mx-auto sm:max-w-3xl">
               {uploadMessage && (
                 <div
                   className={[
@@ -611,7 +633,10 @@ export function ChatPage() {
                   {chatError}
                 </div>
               ) : null}
-              <form className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 pr-4 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 dark:border-primary/20 dark:bg-background-dark" onSubmit={onSubmit}>
+              <form
+                className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 dark:border-primary/20 dark:bg-background-dark sm:flex-row sm:items-center sm:gap-0 sm:pr-4"
+                onSubmit={onSubmit}
+              >
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -620,41 +645,43 @@ export function ChatPage() {
                   onChange={onFileSelect}
                   disabled={!activeWorkspaceId || uploading}
                 />
-                <button
-                  className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
-                  type="button"
-                  title="Choose papers for this chat"
-                  aria-label="Choose papers"
-                  onClick={() => setAttachmentOpen((open) => !open)}
-                >
-                  <span className="material-symbols-outlined">folder_data</span>
-                </button>
-                <button
-                  className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
-                  type="button"
-                  aria-label="Attach file"
-                  disabled={!activeWorkspaceId || uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <span className="material-symbols-outlined">
-                    {uploading ? 'hourglass_top' : 'attach_file'}
-                  </span>
-                </button>
-                <input
-                  className="flex-1 border-none bg-transparent px-2 py-3 text-sm text-slate-900 placeholder:text-slate-500 focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
-                  placeholder="Ask a follow-up question..."
-                  type="text"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                />
-                <button
-                  className="size-10 rounded-xl bg-primary text-white shadow-md shadow-primary/20 disabled:opacity-60"
-                  type="submit"
-                  aria-label="Send"
-                  disabled={sending}
-                >
-                  <span className="material-symbols-outlined">{sending ? 'hourglass_top' : 'send'}</span>
-                </button>
+                <div className="flex items-center gap-1 sm:gap-0">
+                  <button
+                    className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
+                    type="button"
+                    title="Choose papers for this chat"
+                    aria-label="Choose papers"
+                    onClick={() => setAttachmentOpen((open) => !open)}
+                  >
+                    <span className="material-symbols-outlined">folder_data</span>
+                  </button>
+                  <button
+                    className="p-2 text-slate-400 hover:text-primary disabled:opacity-50"
+                    type="button"
+                    aria-label="Attach file"
+                    disabled={!activeWorkspaceId || uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <span className="material-symbols-outlined">
+                      {uploading ? 'hourglass_top' : 'attach_file'}
+                    </span>
+                  </button>
+                  <input
+                    className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100 dark:placeholder:text-slate-500 sm:border-0 sm:bg-transparent sm:px-2 sm:py-3 sm:focus:ring-0"
+                    placeholder="Ask a follow-up question..."
+                    type="text"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                  />
+                  <button
+                    className="h-10 w-10 shrink-0 rounded-xl bg-primary text-white shadow-md shadow-primary/20 disabled:opacity-60"
+                    type="submit"
+                    aria-label="Send"
+                    disabled={sending}
+                  >
+                    <span className="material-symbols-outlined">{sending ? 'hourglass_top' : 'send'}</span>
+                  </button>
+                </div>
               </form>
               {attachmentOpen ? (
                 <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-primary/20 dark:bg-background-dark">
@@ -808,6 +835,137 @@ export function ChatPage() {
         >
           <span className="material-symbols-outlined text-[20px]">right_panel_open</span>
         </button>
+      ) : null}
+
+      {/* Mobile chats drawer */}
+      {mobileChatsOpen ? (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chats"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMobileChatsOpen(false)
+          }}
+        >
+          <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] rounded-t-3xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/90">
+            <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-primary/20">
+              <p className="text-sm font-extrabold text-slate-900 dark:text-white">Chats</p>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/10"
+                onClick={() => setMobileChatsOpen(false)}
+                aria-label="Close"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="custom-scrollbar max-h-[calc(85dvh-56px)] overflow-y-auto p-3">
+              <button
+                className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                type="button"
+                disabled={!activeWorkspaceId}
+                onClick={() => {
+                  void createNewChat()
+                  setMobileChatsOpen(false)
+                }}
+              >
+                <span className="material-symbols-outlined text-[20px]">add_circle</span>
+                New chat
+              </button>
+
+              {chats.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-primary/10 dark:text-slate-300">
+                  No chats yet.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {chats.map((c) => {
+                    const active = activeChatId === c.id
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSearchParams({ chatId: String(c.id) }, { replace: true })
+                          setMobileChatsOpen(false)
+                        }}
+                        className={[
+                          'flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-colors',
+                          active
+                            ? 'border-primary/30 bg-primary/10 text-primary'
+                            : 'border-transparent bg-white text-slate-700 hover:bg-slate-50 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/10',
+                        ].join(' ')}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {active ? 'auto_awesome' : 'forum'}
+                        </span>
+                        <span className="truncate">{c.title}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Mobile sources drawer */}
+      {mobileSourcesOpen ? (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Sources"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMobileSourcesOpen(false)
+          }}
+        >
+          <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] rounded-t-3xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-primary/20 dark:bg-background-dark/90">
+            <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-primary/20">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-extrabold text-slate-900 dark:text-white">Sources</p>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  {citations.length} DOCS
+                </span>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/10"
+                onClick={() => setMobileSourcesOpen(false)}
+                aria-label="Close"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="custom-scrollbar max-h-[calc(85dvh-56px)] overflow-y-auto p-4">
+              {citations.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-300">
+                  No citations yet. Ask a question once documents are ingested.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {citations.map((c) => (
+                    <div
+                      key={`${c.document_id}-${c.chunk_id}`}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-primary/20 dark:bg-background-dark"
+                    >
+                      <p className="truncate text-sm font-extrabold text-slate-900 dark:text-white">{c.filename}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        chunk {c.chunk_id}
+                        {c.page_number != null ? ` • page ${c.page_number}` : ''}
+                      </p>
+                      <div className="mt-3 rounded-xl bg-slate-50 p-3 dark:bg-primary/10">
+                        <p className="text-xs italic leading-relaxed text-slate-600 dark:text-slate-300">“{c.excerpt}”</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       ) : null}
       {newChatModalOpen ? (
         <div

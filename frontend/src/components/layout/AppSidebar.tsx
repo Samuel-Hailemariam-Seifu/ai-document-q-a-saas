@@ -73,10 +73,16 @@ const NAV_ITEMS: Array<{ to: string; label: string; icon: string; end?: true }> 
   { to: '/app/settings', label: 'Manage Account', icon: 'manage_accounts' },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({
+  mobile,
+  onRequestClose,
+}: {
+  mobile?: boolean
+  onRequestClose?: () => void
+}) {
   const { state, setActiveWorkspaceId, create } = useWorkspaces()
   const { state: authState, logout } = useAuth()
-  const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed())
+  const [collapsed, setCollapsed] = useState<boolean>(() => (mobile ? false : readCollapsed()))
   const [theme, setTheme] = useState<ThemePreference>(() => readTheme())
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
@@ -144,11 +150,22 @@ export function AppSidebar() {
     applyTheme(theme)
   }, [theme])
 
+  useEffect(() => {
+    if (!mobile) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onRequestClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobile, onRequestClose])
+
   return (
     <aside
       className={[
-        'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out dark:bg-background-dark',
-        collapsed ? 'w-[92px]' : 'w-[320px]',
+        mobile
+          ? 'fixed inset-y-0 left-0 z-50 flex w-[320px] max-w-[85vw] shrink-0 bg-[#5b4ce6] text-white shadow-2xl dark:bg-background-dark'
+          : 'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out dark:bg-background-dark',
+        mobile ? '' : collapsed ? 'w-[92px]' : 'w-[320px]',
       ].join(' ')}
     >
       
@@ -231,12 +248,18 @@ export function AppSidebar() {
 
       <div className="flex h-full min-h-0 p-3">
         {/* Left icon rail */}
-        {collapsed ? (
+        {collapsed && !mobile ? (
           <div className="flex w-14 shrink-0 flex-col rounded-2xl border border-white/20 bg-white/10 p-2 text-white">
             <div className="flex flex-col items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm dark:bg-surface-dark dark:text-white">
+              <Link
+                to="/app"
+                onClick={() => onRequestClose?.()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm transition-transform hover:scale-[1.02] dark:bg-surface-dark dark:text-white"
+                aria-label="Go to home"
+                title="Home"
+              >
                 <LogoMark size={22} className="shrink-0" />
-              </div>
+              </Link>
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
@@ -258,6 +281,7 @@ export function AppSidebar() {
                   to={it.to}
                   end={it.end as true | undefined}
                   title={it.label}
+                    onClick={() => onRequestClose?.()}
                 >
                   <span className="material-symbols-outlined text-[18px]">{it.icon}</span>
                 </NavLink>
@@ -297,14 +321,32 @@ export function AppSidebar() {
               {state.status === 'ready' ? (
                   <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white dark:border-primary/20 dark:bg-surface-dark">
+                  <Link
+                    to="/app"
+                    onClick={() => onRequestClose?.()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white transition-transform hover:scale-[1.02] dark:border-primary/20 dark:bg-surface-dark"
+                    aria-label="Go to home"
+                    title="Home"
+                  >
                     <LogoMark size={18} className="shrink-0" />
-                  </div>
+                  </Link>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-extrabold tracking-tight text-white">DocuMind AI</p>
                     <p className="text-[10px] uppercase tracking-[0.16em] text-slate-200/90">Knowledge Workspace</p>
                   </div>
-                  <button
+                  {mobile ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
+                      aria-label="Close menu"
+                      title="Close"
+                      onClick={() => onRequestClose?.()}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  ) : null}
+                  {!mobile ? (
+                    <button
                     type="button"
                     className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
                     aria-label="Collapse sidebar"
@@ -315,7 +357,8 @@ export function AppSidebar() {
                     }}
                   >
                     <span className="material-symbols-outlined text-[18px]">menu_open</span>
-                  </button>
+                    </button>
+                  ) : null}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -388,7 +431,13 @@ export function AppSidebar() {
               </div>
               <nav className="mt-2 space-y-1">
                 {NAV_ITEMS.map((it) => (
-                  <NavLink key={it.to} className={panelNavClass} to={it.to} end={it.end as true | undefined}>
+                  <NavLink
+                    key={it.to}
+                    className={panelNavClass}
+                    to={it.to}
+                    end={it.end as true | undefined}
+                    onClick={() => onRequestClose?.()}
+                  >
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 ">
                       <span className="material-symbols-outlined text-[16px]">{it.icon}</span>
                     </span>
@@ -422,7 +471,10 @@ export function AppSidebar() {
                           to={`/app/chat?chatId=${c.id}`}
                           className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10"
                           title={c.title}
-                          onClick={() => void refreshRecent()}
+                          onClick={() => {
+                            void refreshRecent()
+                            onRequestClose?.()
+                          }}
                         >
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[16px] text-slate-300">forum</span>

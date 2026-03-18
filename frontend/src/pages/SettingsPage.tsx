@@ -75,8 +75,8 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="saas-card p-6">
-        <div className="flex items-center gap-4">
+      <div className="saas-card p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-base font-extrabold text-primary">
             {initials}
           </div>
@@ -86,7 +86,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-primary/20 dark:bg-background-dark">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Profile</p>
             {profileMessage ? (
@@ -115,10 +115,10 @@ export function SettingsPage() {
               className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100"
               placeholder="you@company.com"
             />
-            <div className="mt-5 flex justify-end">
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
                 onClick={() => void saveProfile()}
                 disabled={profileBusy || profileName.trim().length < 2 || profileEmail.trim().length < 3}
               >
@@ -159,10 +159,10 @@ export function SettingsPage() {
               className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100"
               placeholder="At least 8 characters"
             />
-            <div className="mt-5 flex items-center justify-between gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/5"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/5 sm:w-auto"
                 onClick={() => logout()}
               >
                 <span className="material-symbols-outlined text-[18px]">logout</span>
@@ -170,7 +170,7 @@ export function SettingsPage() {
               </button>
               <button
                 type="button"
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
                 onClick={() => void submitPassword()}
                 disabled={passwordBusy || newPassword.length < 8 || currentPassword.length < 1}
               >
