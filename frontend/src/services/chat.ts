@@ -70,11 +70,27 @@ export async function askQuestion(
   workspaceId: number,
   question: string,
   chatId?: number | null,
+  documentIds?: number[] | null,
 ): Promise<{ chat_id: number; answer: string; citations: Citation[] }> {
-  return apiRequest(`/api/workspaces/${workspaceId}/chat`, {
-    method: 'POST',
-    auth: true,
-    body: { question, chat_id: chatId ?? null },
-  })
+  const cleanedDocumentIds =
+    documentIds?.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0) ?? []
+  try {
+    return await apiRequest(`/api/workspaces/${workspaceId}/chat`, {
+      method: 'POST',
+      auth: true,
+      body: { question, chat_id: chatId ?? null, document_ids: cleanedDocumentIds.length ? cleanedDocumentIds : null },
+    })
+  } catch (error) {
+    const status = (error as { status?: number } | null)?.status
+    // Backward compatibility: old backend may reject the new field.
+    if ((status === 400 || status === 422) && cleanedDocumentIds.length > 0) {
+      return apiRequest(`/api/workspaces/${workspaceId}/chat`, {
+        method: 'POST',
+        auth: true,
+        body: { question, chat_id: chatId ?? null },
+      })
+    }
+    throw error
+  }
 }
 

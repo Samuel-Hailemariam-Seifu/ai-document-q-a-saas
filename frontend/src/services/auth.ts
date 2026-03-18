@@ -71,3 +71,14 @@ export async function resetPassword(token: string, newPassword: string): Promise
   })
 }
 
+export async function updateProfile(input: { full_name: string; email: string }): Promise<User> {
+  return apiRequest<User>('/api/auth/profile', { method: 'PUT', auth: true, body: input })
+}
+
+export async function changePassword(input: {
+  current_password: string
+  new_password: string
+}): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/auth/change-password', { method: 'POST', auth: true, body: input })
+}
+
