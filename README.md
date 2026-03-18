@@ -380,13 +380,46 @@ High-level endpoints (REST):
 
 ---
 
-## 📸 Screenshots (placeholders)
+## 📸 Screenshots
 
-Add images under a `docs/` folder and update these links:
-- **Dashboard**: `docs/screenshots/dashboard.png`
-- **Document upload & status**: `docs/screenshots/documents.png`
-- **Chat + citations**: `docs/screenshots/chat.png`
-- **Billing**: `docs/screenshots/billing.png`
+Screenshots live in `frontend/UI/`.
+
+### Dashboard
+
+![Dashboard (dark theme)](frontend/UI/dashboardpage-darktheme.png)
+![Dashboard (light theme)](frontend/UI/dashboardpage-lighththeme.png)
+![Dashboard (light theme, open sidebar)](frontend/UI/dashboardpage-light%20theme%20opensidebar.png)
+![Dashboard (dark theme, open sidebar)](frontend/UI/dashboardpage-open%20sidebar%20darktheme.png)
+
+### Sidebar & workspace
+
+![Sidebar (light theme)](frontend/UI/sidebar-lightthme.png)
+![Sidebar (dark theme)](frontend/UI/sidebar%20darktheme.png)
+![Add workspace modal (light theme)](frontend/UI/addworkspace-modal-lighttheme.png)
+
+### Documents
+
+![Documents page (dark theme)](frontend/UI/documentspage-darktheme.png)
+![Documents page (light theme, open sidebar)](frontend/UI/documentspage-lighththeme%20open%20sidebar.png)
+![Document detail (light theme)](frontend/UI/document%20detail%20page%20light%20theme.png)
+![Document detail (dark theme)](frontend/UI/document%20detail%20page-%20darktheme.png)
+![Extracted chunks (light theme)](frontend/UI/extracted%20chunks%20light%20theme.png)
+![Extracted chunks (dark theme)](frontend/UI/extracted%20chunks%20darktheme.png)
+
+### Chat
+
+![Chat page (light theme)](frontend/UI/chatpage%20-%20lighttheme.png)
+![Chat page (dark theme)](frontend/UI/chatpage-darktheme.png)
+![Add new chat (light theme)](frontend/UI/add%20new%20chat-light%20theme.png)
+![Add name to chatbot](frontend/UI/add%20name%20to%20chatboat.png)
+![Chat (hidden sidebars)](frontend/UI/chatboat-hidden%20sidebars.png)
+![Chat (sidebars hidden)](frontend/UI/chatboat-sidebars%20hidden.png)
+
+### Billing
+
+![Billing page (dark theme)](frontend/UI/billingpage-darktheme.png)
+![Billing page (light theme, open sidebar)](frontend/UI/billingpage-open%20sidebar%20lighttheme.png)
+![Stripe integrated](frontend/UI/stripe%20integrated.png)
 
 ---
 
