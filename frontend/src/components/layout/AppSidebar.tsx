@@ -4,6 +4,30 @@ import { useAuth } from '../../auth/AuthContext'
 import { listRecentChats, type ChatPreview } from '../../services/chat'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
 import { LogoMark } from '../brand/LogoMark'
+import { ThemeToggle } from '../theme/ThemeToggle'
+
+type ThemePreference = 'light' | 'dark'
+const THEME_KEY = 'theme'
+
+function readTheme(): ThemePreference {
+  try {
+    const v = localStorage.getItem(THEME_KEY)
+    if (v === 'light' || v === 'dark') return v
+  } catch {
+    // ignore
+  }
+  return 'dark'
+}
+
+function applyTheme(pref: ThemePreference) {
+  const isDark = pref === 'dark'
+  document.documentElement.classList.toggle('dark', isDark)
+  try {
+    localStorage.setItem(THEME_KEY, pref)
+  } catch {
+    // ignore
+  }
+}
 
 function panelNavClass({ isActive }: { isActive: boolean }) {
   return [
@@ -53,6 +77,7 @@ export function AppSidebar() {
   const { state, setActiveWorkspaceId, create } = useWorkspaces()
   const { state: authState, logout } = useAuth()
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed())
+  const [theme, setTheme] = useState<ThemePreference>(() => readTheme())
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
@@ -114,6 +139,10 @@ export function AppSidebar() {
     const active = state.items.find((w) => w.id === state.activeWorkspaceId)
     return active?.name ?? 'Workspace'
   }, [state])
+
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
 
   return (
     <aside
@@ -239,6 +268,17 @@ export function AppSidebar() {
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
+                onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {theme === 'dark' ? 'dark_mode' : 'light_mode'}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
                 onClick={() => logout()}
                 aria-label="Logout"
                 title="Logout"
@@ -343,8 +383,10 @@ export function AppSidebar() {
             </div>
 
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
-              <nav className="space-y-1">
+              <div className="px-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
+              </div>
+              <nav className="mt-2 space-y-1">
                 {NAV_ITEMS.map((it) => (
                   <NavLink key={it.to} className={panelNavClass} to={it.to} end={it.end as true | undefined}>
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 ">
@@ -355,10 +397,10 @@ export function AppSidebar() {
                 ))}
               </nav>
 
-              <div className="mt-5">
+              <div className="mt-5 rounded-2xl border border-white/15 bg-white/5 p-2">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/10"
+                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-200/90 transition-colors hover:bg-white/10"
                   onClick={() => setRecentOpen((v) => !v)}
                   aria-label="Toggle recent chats"
                 >
@@ -370,7 +412,7 @@ export function AppSidebar() {
                 </button>
 
                 {recentOpen ? (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-1 space-y-1">
                     {recentChats.length === 0 ? (
                       <div className="px-2 py-2 text-sm text-slate-200/80">No recent chats.</div>
                     ) : (
@@ -395,32 +437,58 @@ export function AppSidebar() {
             </div>
 
             <div className="border-t border-white/20 px-3 py-3 dark:border-primary/20">
-              <div className="rounded-xl bg-white/10 p-3 dark:bg-primary/10">
-                <p className="text-sm font-bold text-white">Get more power</p>
-                <p className="mt-1 text-xs text-slate-200/90">
-                  Upgrade for higher limits and faster processing.
-                </p>
-                <Link
-                  to="/app/billing"
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-[#5b4ce6] transition-colors hover:bg-slate-100 dark:bg-background-dark dark:text-slate-100 dark:hover:bg-primary/10"
-                >
-                  <span className="material-symbols-outlined text-[16px]">diamond</span>
-                  Go to billing
-                </Link>
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Account</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-white">
+                      {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
+                    </p>
+                    <p className="truncate text-xs text-slate-200/90">
+                      {authState.status === 'authenticated' ? authState.user.email : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <ThemeToggle />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      to="/app/settings"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                      onClick={() => logout()}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      Logout
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
-                  {initials}
+              <div className="mt-3 rounded-2xl bg-white/10 p-3 dark:bg-primary/10">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-white">Get more power</p>
+                    <p className="mt-1 text-xs text-slate-200/90">Upgrade for higher limits and faster processing.</p>
+                  </div>
+                  <span className="material-symbols-outlined text-white/80">diamond</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-white">
-                    {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
-                  </p>
-                  <p className="truncate text-xs text-slate-200/90">
-                    {authState.status === 'authenticated' ? authState.user.email : ''}
-                  </p>
-                </div>
+                <Link
+                  to="/app/billing"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-extrabold text-[#5b4ce6] transition-colors hover:bg-slate-100 dark:bg-background-dark dark:text-slate-100 dark:hover:bg-primary/10"
+                >
+                  Manage plan
+                </Link>
               </div>
             </div>
           </div>
