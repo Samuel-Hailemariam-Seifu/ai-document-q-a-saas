@@ -3,39 +3,45 @@ import { LogoMark } from '../components/brand/LogoMark'
 
 export function LandingPage() {
   return (
-    <div className="relative min-h-screen bg-background-light font-display text-slate-900 antialiased dark:bg-background-dark dark:text-slate-100">
-      {/* Subtle background texture */}
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.02] dark:opacity-[0.03]"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-          backgroundSize: '40px 40px',
-        }}
-      />
+    <div className="relative min-h-screen bg-slate-950 font-display text-slate-100 antialiased">
+      {/* Premium background grid + glow */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.20),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(124,58,237,0.16),transparent_45%)]" />
+        <div
+          className="absolute inset-0 opacity-[0.25]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(148,163,184,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.10) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950 to-slate-950" />
+      </div>
 
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-background-light/90 backdrop-blur-xl dark:border-slate-800/80 dark:bg-background-dark/90">
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <LogoMark size={28} className="shrink-0" />
-            <span className="font-heading text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
-              DocuMind AI
+            <span className="font-heading text-lg font-semibold tracking-tight text-white">
+              AI Document Q&amp;A Assistant
             </span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             <a
-              className="text-sm font-medium text-slate-500 transition-colors hover:text-primary dark:text-slate-400 dark:hover:text-primary"
+              className="text-sm font-medium text-slate-300/80 transition-colors hover:text-white"
               href="#features"
             >
               Features
             </a>
             <a
-              className="text-sm font-medium text-slate-500 transition-colors hover:text-primary dark:text-slate-400 dark:hover:text-primary"
+              className="text-sm font-medium text-slate-300/80 transition-colors hover:text-white"
               href="#how-it-works"
             >
               How it works
             </a>
             <a
-              className="text-sm font-medium text-slate-500 transition-colors hover:text-primary dark:text-slate-400 dark:hover:text-primary"
+              className="text-sm font-medium text-slate-300/80 transition-colors hover:text-white"
               href="#pricing"
             >
               Pricing
@@ -44,13 +50,13 @@ export function LandingPage() {
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              className="text-sm font-medium text-slate-300/80 hover:text-white"
             >
               Log in
             </Link>
             <Link
               to="/signup"
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+              className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
             >
               Get started
             </Link>
@@ -61,31 +67,151 @@ export function LandingPage() {
       <main>
         {/* Hero */}
         <section className="relative px-6 pt-24 pb-32 md:pt-32 md:pb-40">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="font-heading mb-6 text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              Document intelligence
-            </p>
-            <h1 className="font-heading text-4xl font-bold leading-[1.15] tracking-tight text-slate-900 dark:text-white sm:text-5xl md:text-6xl">
-              Your documents.
-              <br />
-              <span className="text-primary">Answered.</span>
-            </h1>
-            <p className="mt-8 max-w-xl mx-auto text-lg text-slate-600 dark:text-slate-400">
-              Upload PDFs and docs. Ask questions in plain language. Get accurate answers with citations—in seconds.
-            </p>
-            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                to="/signup"
-                className="inline-flex w-full items-center justify-center rounded-full bg-primary px-8 py-4 text-base font-semibold text-white transition-all hover:opacity-90 sm:w-auto"
+          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
+            <div className="text-center lg:text-left">
+              <p className="font-heading mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-slate-200/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                Private, citation-backed answers
+              </p>
+              <h1 className="font-heading text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+                Turn Your Documents Into an AI Assistant
+              </h1>
+              <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-300/90 lg:mx-0">
+                Upload PDFs, DOCX, or text files and ask questions with accurate, citation-backed answers powered by AI.
+              </p>
+              <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+                <Link
+                  to="/signup"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-600/25 transition-all hover:bg-indigo-500 sm:w-auto"
+                >
+                  Get Started
+                </Link>
+                <a
+                  href="#demo"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-white/15 bg-white/5 px-7 py-3.5 text-base font-semibold text-white/90 shadow-sm shadow-black/20 transition-all hover:bg-white/10 sm:w-auto"
+                >
+                  View Demo
+                </a>
+              </div>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {[
+                  { icon: 'lock', text: 'Private & secure workspace' },
+                  { icon: 'verified', text: 'Answers grounded in your documents' },
+                  { icon: 'format_quote', text: 'Citations for every response' },
+                ].map((item) => (
+                  <div
+                    key={item.text}
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200/90 shadow-sm shadow-black/10 lg:justify-start"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-indigo-300">{item.icon}</span>
+                    <span className="font-semibold">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Clean UI mock (chat + document/citations panel) */}
+            <div className="relative">
+              {/* glow behind card */}
+              <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[3rem] bg-gradient-to-r from-indigo-600/25 via-purple-600/20 to-fuchsia-500/15 blur-3xl" />
+
+              <div
+                id="demo"
+                className="rounded-3xl border border-white/10 bg-slate-900/55 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl"
               >
-                Start for free
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex w-full items-center justify-center rounded-full border border-slate-300 px-8 py-4 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800/50 sm:w-auto"
-              >
-                See how it works
-              </a>
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-indigo-300">folder_data</span>
+                    <p className="text-sm font-semibold text-white">Document panel</p>
+                    <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-xs font-semibold text-indigo-200">
+                      Sources
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-300/80">Citations highlighted</span>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+                  {/* Chat */}
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-xl bg-white/5 ring-1 ring-white/10" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-300/70">
+                          Question
+                        </p>
+                        <p className="mt-1 text-sm text-white">
+                          What is the refund policy?
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-start gap-3">
+                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-xl bg-indigo-600/20 ring-1 ring-indigo-500/25" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-300/70">
+                          AI answer
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-slate-200">
+                          Refunds are available within 14 days of purchase, as long as the service has not been used
+                          beyond the plan’s fair-use limits. After 14 days, refunds are generally not provided.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600/15 px-2.5 py-1 text-xs font-semibold text-indigo-200 ring-1 ring-indigo-500/20">
+                            <span className="material-symbols-outlined text-[16px] text-indigo-300">format_quote</span>
+                            2 citations
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-600/15 px-2.5 py-1 text-xs font-semibold text-purple-200 ring-1 ring-purple-500/20">
+                            <span className="material-symbols-outlined text-[16px] text-purple-300">verified</span>
+                            grounded
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Citations panel */}
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-300/70">
+                        Citations
+                      </p>
+                      <span className="text-xs font-semibold text-slate-300/70">Sources</span>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {[
+                        {
+                          title: 'Terms.pdf',
+                          meta: 'Section 4.2 • Chunk 18',
+                          excerpt: 'Refunds are available within fourteen (14) days of purchase…',
+                        },
+                        {
+                          title: 'Pricing.pdf',
+                          meta: 'Section 2.1 • Chunk 6',
+                          excerpt: 'After the 14-day period, refunds are generally not provided…',
+                        },
+                      ].map((c) => (
+                        <div
+                          key={`${c.title}-${c.meta}`}
+                          className="rounded-xl border border-white/10 bg-white/5 p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-white">{c.title}</p>
+                            <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-[11px] font-bold text-indigo-200">
+                              cited
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-slate-300/70">{c.meta}</p>
+                          <p className="mt-2 line-clamp-2 text-sm text-slate-200">
+                            <span className="rounded-md bg-indigo-600/15 px-1.5 py-0.5 ring-1 ring-indigo-500/15">
+                              {c.excerpt}
+                            </span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -140,13 +266,14 @@ export function LandingPage() {
               How it works
             </h2>
             <p className="mt-3 text-center text-slate-600 dark:text-slate-400">
-              Three steps to document intelligence.
+              A workflow built for grounded answers.
             </p>
-            <div className="mt-16 grid gap-12 sm:grid-cols-3">
+            <div className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { step: '01', title: 'Upload', text: 'Add PDFs, Word docs, or text files to your workspace.' },
-                { step: '02', title: 'Process', text: 'We extract, chunk, and index your content securely.' },
-                { step: '03', title: 'Ask', text: 'Chat with your documents and get cited answers in seconds.' },
+                { step: '01', title: 'Upload', text: 'Add PDFs, Word docs, or text files to a workspace.' },
+                { step: '02', title: 'Ingest', text: 'We extract text, chunk it, and build embeddings for retrieval.' },
+                { step: '03', title: 'Choose scope', text: 'Pick one or more papers to keep answers on-topic (docIds).' },
+                { step: '04', title: 'Ask + verify', text: 'Get an answer plus citations you can click and confirm.' },
               ].map((item) => (
                 <div key={item.step} className="text-center">
                   <span className="font-heading text-3xl font-bold text-primary/60">{item.step}</span>
