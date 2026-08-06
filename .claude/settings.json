@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(docker info *)",
+      "Bash(grep -n \"^\\\\.env\\\\|env$\" \"c:/Users/PAVILION/Desktop/delete/ai-document-q-a-saas/.gitignore\")",
+      "Bash(where postgres *)",
+      "Bash(where psql *)",
+      "Bash(where pg_ctl)",
+      "Bash(powershell -Command 'Get-Service | Where-Object {$_.Name -like '\\\\''*postgres*'\\\\''} | Format-Table -AutoSize')",
+      "Bash(where redis-server *)",
+      "Bash(where node *)",
+      "Bash(where npm *)",
+      "Bash(npm --version)",
+      "Bash(export PGPASSWORD=postgres)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -h localhost -c \"SELECT 1;\")",
+      "Bash(./.venv/Scripts/python.exe -m pip list)",
+      "Bash(./.venv/Scripts/python.exe -m alembic upgrade head)",
+      "Bash(./.venv/Scripts/python.exe -c ' *)",
+      "Bash(./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(npm install *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

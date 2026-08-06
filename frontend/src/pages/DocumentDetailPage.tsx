@@ -8,26 +8,9 @@ import {
   type DocumentDetail,
 } from '../services/documents'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function statusDisplay(status: string): { label: string; healthy: boolean } {
-  switch (status) {
-    case 'ready':
-      return { label: 'Ready', healthy: true }
-    case 'processing':
-    case 'pending':
-      return { label: status === 'processing' ? 'Processing…' : 'Pending', healthy: false }
-    case 'failed':
-      return { label: 'Failed', healthy: false }
-    default:
-      return { label: status, healthy: false }
-  }
-}
+import { Icon } from '../components/common/Icon'
+import { statusBadgeClass, statusLabel } from '../lib/documents'
+import { formatBytes, formatDate, formatNumber } from '../lib/format'
 
 export function DocumentDetailPage() {
   const { documentId } = useParams()
@@ -49,10 +32,7 @@ export function DocumentDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const [d, chunkList] = await Promise.all([
-        getDocument(id),
-        getDocumentChunks(id).catch(() => []),
-      ])
+      const [d, chunkList] = await Promise.all([getDocument(id), getDocumentChunks(id).catch(() => [])])
       setDoc(d)
       setChunks(chunkList)
     } catch (e) {
@@ -79,159 +59,134 @@ export function DocumentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-slate-500">Loading…</p>
+      <div className="space-y-4">
+        <div className="h-5 w-56 animate-pulse rounded bg-slate-200 dark:bg-white/10" />
+        <div className="h-24 animate-pulse rounded-xl bg-slate-200 dark:bg-white/10" />
+        <div className="h-40 animate-pulse rounded-xl bg-slate-200 dark:bg-white/10" />
       </div>
     )
   }
 
   if (error || !doc) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4">
-        <p className="text-slate-500">{error ?? 'Document not found'}</p>
-        <Link to="/app/documents" className="text-primary hover:underline">
-          Back to Documents
+      <div className="saas-card flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+        <Icon name="alert" size={24} className="text-slate-300 dark:text-slate-600" />
+        <p className="text-sm text-slate-500 dark:text-slate-400">{error ?? 'Document not found'}</p>
+        <Link to="/app/documents" className="saas-btn saas-btn-secondary">
+          <Icon name="arrowLeft" size={16} />
+          Back to documents
         </Link>
       </div>
     )
   }
 
-  const statusInfo = statusDisplay(doc.status)
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Status', value: statusLabel(doc.status) },
+    { label: 'Chunks', value: formatNumber(doc.chunk_count) },
+    { label: 'Pages', value: doc.page_count != null ? formatNumber(doc.page_count) : '—' },
+    { label: 'Size', value: formatBytes(doc.file_size) },
+    { label: 'Type', value: doc.mime_type },
+    { label: 'Uploaded', value: formatDate(doc.created_at) },
+  ]
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-          <Link className="font-medium text-slate-500 hover:text-primary dark:text-primary/70" to="/app/documents">
-            My Documents
+    <div className="space-y-6">
+      <nav className="flex min-w-0 items-center gap-1.5 text-sm">
+        <Link className="font-medium text-slate-500 hover:text-primary dark:text-slate-400" to="/app/documents">
+          Documents
+        </Link>
+        <Icon name="chevronRight" size={14} className="shrink-0 text-slate-300 dark:text-slate-600" />
+        <span className="truncate font-medium text-slate-900 dark:text-white">{doc.original_name}</span>
+      </nav>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="saas-title break-words">{doc.original_name}</h1>
+          <p className="saas-subtitle flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={`saas-badge ${statusBadgeClass(doc.status)}`}>{statusLabel(doc.status)}</span>
+            <span>
+              Uploaded {formatDate(doc.created_at)} • {formatBytes(doc.file_size)}
+            </span>
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link to={`/app/chat?docIds=${doc.id}`} className="saas-btn saas-btn-primary">
+            <Icon name="sparkles" size={16} />
+            Ask AI
           </Link>
-          <span className="material-symbols-outlined text-sm text-slate-400">chevron_right</span>
-          <span className="truncate font-medium text-slate-900 dark:text-white">{doc.original_name}</span>
-        </nav>
-        <div className="flex shrink-0 gap-2">
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600 transition-colors hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400"
             type="button"
+            className="saas-icon-btn hover:text-rose-600 dark:hover:text-rose-400"
             onClick={() => setDeleteOpen(true)}
-            aria-label="Delete"
+            aria-label="Delete document"
           >
-            <span className="material-symbols-outlined text-[20px]">delete</span>
+            <Icon name="trash" size={18} />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="space-y-1">
-          <h1 className="saas-title">{doc.original_name}</h1>
-          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <span className="material-symbols-outlined text-xs">calendar_today</span>
-            Uploaded {new Date(doc.created_at).toLocaleDateString()} • {formatSize(doc.file_size)}
-          </p>
+      {doc.status === 'failed' && doc.error_message ? (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
+          <span>{doc.error_message}</span>
         </div>
-        <div className="flex gap-3">
-          <Link
-            to={`/app/chat?docIds=${doc.id}`}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            <span className="material-symbols-outlined text-[18px]">psychology</span>
-            Ask AI
-          </Link>
+      ) : null}
+
+      <div className="saas-card overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <Icon name="info" size={16} className="text-slate-400" />
+          <h2 className="saas-section-title">File details</h2>
         </div>
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+          {details.map((d) => (
+            <div key={d.label} className="min-w-0">
+              <dt className="saas-label">{d.label}</dt>
+              <dd className="mt-1.5 truncate text-sm font-medium text-slate-900 dark:text-white" title={d.value}>
+                {d.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
-      <div className="saas-gradient-panel p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/80">Document overview</p>
-            <p className="mt-1 text-lg font-bold">Status, pages, chunks, and extracted context</p>
-          </div>
-          <span className="material-symbols-outlined text-3xl text-white/90">description</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="saas-card p-6">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{statusInfo.label}</p>
-            {statusInfo.healthy ? (
-              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-500">
-                <span className="material-symbols-outlined text-xs">check_circle</span>
-                Healthy
-              </span>
-            ) : doc.status === 'failed' && doc.error_message ? (
-              <span className="text-xs text-rose-500" title={doc.error_message}>
-                Error
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="saas-card p-6">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Chunks</p>
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{doc.chunk_count}</p>
-          </div>
-        </div>
-
-        <div className="saas-card p-6">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Pages</p>
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{doc.page_count ?? '—'}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="saas-card p-6">
-        <h4 className="mb-4 flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-          <span className="material-symbols-outlined text-primary">info</span>
-          File Details
-        </h4>
-        <div className="space-y-4 text-sm">
-          <div className="flex justify-between border-b border-slate-100 py-2 dark:border-primary/10">
-            <span className="text-slate-500 dark:text-slate-400">Type</span>
-            <span className="font-medium text-slate-900 dark:text-white">{doc.mime_type}</span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 py-2 dark:border-primary/10">
-            <span className="text-slate-500 dark:text-slate-400">Size</span>
-            <span className="font-medium text-slate-900 dark:text-white">{formatSize(doc.file_size)}</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span className="text-slate-500 dark:text-slate-400">Pages</span>
-            <span className="font-medium text-slate-900 dark:text-white">{doc.page_count ?? '—'}</span>
-          </div>
-        </div>
-      </div>
-
-      {doc.status === 'ready' && chunks.length > 0 && (
+      {doc.status === 'ready' && chunks.length > 0 ? (
         <div className="saas-card overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 dark:border-primary/20 dark:bg-primary/10">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-primary/70">
-              Extracted Chunks
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <Icon name="layers" size={16} className="text-slate-400" />
+              <h2 className="saas-section-title">Extracted chunks</h2>
+            </div>
+            <span className="saas-badge bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
+              {formatNumber(chunks.length)}
             </span>
           </div>
-          <div className="custom-scrollbar max-h-[600px] space-y-6 overflow-y-auto p-6">
+          <div className="custom-scrollbar max-h-[600px] divide-y divide-slate-200 overflow-y-auto dark:divide-slate-800">
             {chunks.map((c) => (
-              <div key={c.id} className="group space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                    CHUNK #{String(c.chunk_index + 1).padStart(3, '0')}
+              <div key={c.id} className="p-5">
+                <div className="flex items-center gap-2">
+                  <span className="saas-badge bg-primary/10 text-primary dark:text-primary-dark">
+                    #{String(c.chunk_index + 1).padStart(3, '0')}
                   </span>
-                  {c.page_number != null && <span className="text-xs text-slate-500">Page {c.page_number}</span>}
-                  <div className="h-px flex-1 bg-slate-100 dark:bg-primary/10" />
+                  {c.page_number != null ? (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Page {c.page_number}</span>
+                  ) : null}
                 </div>
-                <div className="rounded-lg border border-transparent bg-slate-50 p-4 transition-all group-hover:border-primary/30 dark:bg-primary/5">
-                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{c.content}</p>
-                </div>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{c.content}</p>
               </div>
             ))}
           </div>
         </div>
-      )}
-      {doc.status === 'processing' && (
-        <p className="text-sm text-slate-500">Processing document… chunks will appear when ready.</p>
-      )}
-      {doc.status === 'pending' && <p className="text-sm text-slate-500">Document is queued for processing.</p>}
+      ) : doc.status === 'processing' || doc.status === 'pending' ? (
+        <div className="saas-card flex flex-col items-center justify-center px-6 py-12 text-center">
+          <Icon name="hourglass" size={24} className="text-slate-300 dark:text-slate-600" />
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+            {doc.status === 'processing'
+              ? 'Processing this document — chunks will appear when ready.'
+              : 'This document is queued for processing.'}
+          </p>
+        </div>
+      ) : null}
+
       <ConfirmDialog
         open={deleteOpen}
         title="Delete document?"

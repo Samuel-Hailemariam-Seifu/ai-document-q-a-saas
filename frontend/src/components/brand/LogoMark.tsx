@@ -19,20 +19,6 @@ export function LogoMark({ size = 32, variant = 'default', className, ...rest }:
       focusable="false"
       {...rest}
     >
-      <defs>
-        <linearGradient
-          id="documind-premium-g"
-          x1="4"
-          y1="4"
-          x2="36"
-          y2="36"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="#1d4ed8" />
-          <stop offset="0.5" stopColor="#3b82f6" />
-          <stop offset="1" stopColor="#60a5fa" />
-        </linearGradient>
-      </defs>
       {/* Document: rounded rectangle */}
       <rect
         x="6"
@@ -40,7 +26,7 @@ export function LogoMark({ size = 32, variant = 'default', className, ...rest }:
         width="22"
         height="28"
         rx="6"
-        fill="url(#documind-premium-g)"
+        fill="#0d9488"
         fillOpacity={fillOpacity}
       />
       {/* Text lines */}
@@ -49,7 +35,7 @@ export function LogoMark({ size = 32, variant = 'default', className, ...rest }:
       <rect x="11" y="22" width="8" height="1.5" rx="0.75" fill="white" fillOpacity="0.65" />
       {/* Mind / AI spark */}
       <circle cx="28" cy="12" r="5" fill="white" />
-      <circle cx="28" cy="12" r="2.5" fill="url(#documind-premium-g)" />
+      <circle cx="28" cy="12" r="2.5" fill="#0d9488" />
     </svg>
   )
 }

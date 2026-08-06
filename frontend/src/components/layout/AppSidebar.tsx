@@ -1,51 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { useAuth } from '../../auth/AuthContext'
 import { listRecentChats, type ChatPreview } from '../../services/chat'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
+import { Icon, type IconName } from '../common/Icon'
 import { LogoMark } from '../brand/LogoMark'
-import { ThemeToggle } from '../theme/ThemeToggle'
-
-type ThemePreference = 'light' | 'dark'
-const THEME_KEY = 'theme'
-
-function readTheme(): ThemePreference {
-  try {
-    const v = localStorage.getItem(THEME_KEY)
-    if (v === 'light' || v === 'dark') return v
-  } catch {
-    // ignore
-  }
-  return 'dark'
-}
-
-function applyTheme(pref: ThemePreference) {
-  const isDark = pref === 'dark'
-  document.documentElement.classList.toggle('dark', isDark)
-  try {
-    localStorage.setItem(THEME_KEY, pref)
-  } catch {
-    // ignore
-  }
-}
-
-function panelNavClass({ isActive }: { isActive: boolean }) {
-  return [
-    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
-    isActive
-      ? 'bg-white/22 text-white shadow-sm'
-      : 'text-slate-100/95 hover:bg-white/10 hover:text-white',
-  ].join(' ')
-}
-
-function railNavClass({ isActive }: { isActive: boolean }) {
-  return [
-    'group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all',
-    isActive
-      ? 'bg-white/25 text-white shadow-sm'
-      : 'text-white/85 hover:bg-white/15 hover:text-white',
-  ].join(' ')
-}
 
 const COLLAPSED_KEY = 'documind.sidebarCollapsed'
 
@@ -65,13 +23,29 @@ function writeCollapsed(v: boolean) {
   }
 }
 
-const NAV_ITEMS: Array<{ to: string; label: string; icon: string; end?: true }> = [
+type NavItem = { to: string; label: string; icon: IconName; end?: true }
+
+const NAV_ITEMS: NavItem[] = [
   { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
-  { to: '/app/documents', label: 'Documents', icon: 'folder_data' },
-  { to: '/app/chat', label: 'Assistant', icon: 'auto_awesome' },
-  { to: '/app/billing', label: 'Billing', icon: 'credit_card' },
-  // { to: '/app/settings', label: 'Manage Account', icon: 'manage_accounts' },
+  { to: '/app/documents', label: 'Documents', icon: 'folder' },
+  { to: '/app/chat', label: 'Assistant', icon: 'sparkles' },
+  { to: '/app/billing', label: 'Billing', icon: 'billing' },
+  { to: '/app/settings', label: 'Settings', icon: 'settings' },
 ]
+
+const ICON_BUTTON =
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
+
+function navItemClass(compact: boolean) {
+  return ({ isActive }: { isActive: boolean }) =>
+    [
+      'flex h-10 items-center gap-3 rounded-lg text-sm transition-colors',
+      compact ? 'w-10 justify-center' : 'px-3',
+      isActive
+        ? 'bg-primary/10 font-semibold text-primary dark:text-primary-dark'
+        : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white',
+    ].join(' ')
+}
 
 export function AppSidebar({
   mobile,
@@ -80,27 +54,14 @@ export function AppSidebar({
   mobile?: boolean
   onRequestClose?: () => void
 }) {
-  const { state, setActiveWorkspaceId, create } = useWorkspaces()
-  const { state: authState, logout } = useAuth()
+  const { state } = useWorkspaces()
   const [collapsed, setCollapsed] = useState<boolean>(() => (mobile ? false : readCollapsed()))
-  const [theme, setTheme] = useState<ThemePreference>(() => readTheme())
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
-  const [workspaceOpen, setWorkspaceOpen] = useState(false)
-  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false)
-  const [workspaceName, setWorkspaceName] = useState('')
-  const [creatingWorkspace, setCreatingWorkspace] = useState(false)
-  const workspaceMenuRef = useRef<HTMLDivElement | null>(null)
 
+  // Collapsed is a desktop-only affordance; the mobile drawer always shows labels.
+  const compact = !mobile && collapsed
   const workspaceId = state.status === 'ready' ? state.activeWorkspaceId : null
-
-  const initials = useMemo(() => {
-    if (authState.status !== 'authenticated') return 'U'
-    const base = (authState.user.full_name || authState.user.email || 'User').trim()
-    const parts = base.split(/\s+/).slice(0, 2)
-    const chars = parts.map((p) => p[0]?.toUpperCase()).filter(Boolean)
-    return (chars.join('') || 'U').slice(0, 2)
-  }, [authState])
 
   const refreshRecent = useCallback(async () => {
     if (!workspaceId) {
@@ -108,8 +69,7 @@ export function AppSidebar({
       return
     }
     try {
-      const list = await listRecentChats(workspaceId, 6)
-      setRecentChats(list)
+      setRecentChats(await listRecentChats(workspaceId, 6))
     } catch {
       setRecentChats([])
     }
@@ -123,34 +83,6 @@ export function AppSidebar({
   }, [refreshRecent])
 
   useEffect(() => {
-    if (!workspaceOpen) return
-    const onDown = (e: MouseEvent) => {
-      const el = workspaceMenuRef.current
-      if (!el) return
-      if (e.target instanceof Node && !el.contains(e.target)) setWorkspaceOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setWorkspaceOpen(false)
-    }
-    window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [workspaceOpen])
-
-  const activeWorkspaceName = useMemo(() => {
-    if (state.status !== 'ready') return 'Workspace'
-    const active = state.items.find((w) => w.id === state.activeWorkspaceId)
-    return active?.name ?? 'Workspace'
-  }, [state])
-
-  useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
-
-  useEffect(() => {
     if (!mobile) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onRequestClose?.()
@@ -159,394 +91,176 @@ export function AppSidebar({
     return () => window.removeEventListener('keydown', onKey)
   }, [mobile, onRequestClose])
 
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      writeCollapsed(!v)
+      return !v
+    })
+  }
+
   return (
     <aside
       className={[
+        'flex flex-col bg-white dark:bg-surface-dark',
         mobile
-          ? 'fixed inset-y-0 left-0 z-50 flex w-[320px] max-w-[85vw] shrink-0 bg-[#5b4ce6] text-white shadow-2xl dark:bg-background-dark'
-          : 'hidden shrink-0 bg-[#5b4ce6] text-white md:flex overflow-hidden transition-[width] duration-300 ease-in-out dark:bg-background-dark',
-        mobile ? '' : collapsed ? 'w-[92px]' : 'w-[320px]',
+          ? 'fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] shadow-xl'
+          : 'hidden shrink-0 border-r border-slate-200 transition-[width] duration-200 ease-out dark:border-slate-800 md:flex',
+        mobile ? '' : compact ? 'w-[76px]' : 'w-[272px]',
       ].join(' ')}
     >
-      
-      {workspaceModalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Create workspace"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setWorkspaceModalOpen(false)
-          }}
+      <div
+        className={[
+          'flex h-16 shrink-0 items-center gap-2.5 border-b border-slate-200 dark:border-slate-800',
+          compact ? 'justify-center px-2' : 'px-4',
+        ].join(' ')}
+      >
+        <Link
+          to="/app"
+          onClick={() => onRequestClose?.()}
+          className="flex min-w-0 items-center gap-2.5"
+          aria-label="DocuMind AI home"
         >
-          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-primary/20 dark:bg-background-dark">
-            <div className="px-5 py-4">
-              <p className="text-sm font-extrabold text-slate-900 dark:text-white">Create workspace</p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Workspaces keep documents and chats isolated.
-              </p>
-            </div>
-            <div className="px-5 pb-5">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Workspace name</label>
-              <input
-                autoFocus
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="e.g., HR Policies"
-                className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-primary/20 dark:bg-primary/10 dark:text-slate-100"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setWorkspaceModalOpen(false)
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    const name = workspaceName.trim()
-                    if (!name || creatingWorkspace) return
-                    setCreatingWorkspace(true)
-                    void create(name)
-                      .then(() => {
-                        setWorkspaceModalOpen(false)
-                        setWorkspaceName('')
-                      })
-                      .finally(() => setCreatingWorkspace(false))
-                  }
-                }}
-              />
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-primary/20 dark:bg-background-dark dark:text-slate-200 dark:hover:bg-primary/5"
-                  onClick={() => setWorkspaceModalOpen(false)}
-                  disabled={creatingWorkspace}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
-                  disabled={creatingWorkspace || workspaceName.trim().length < 2}
-                  onClick={() => {
-                    const name = workspaceName.trim()
-                    if (!name) return
-                    setCreatingWorkspace(true)
-                    void create(name)
-                      .then(() => {
-                        setWorkspaceModalOpen(false)
-                        setWorkspaceName('')
-                      })
-                      .finally(() => setCreatingWorkspace(false))
-                  }}
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {creatingWorkspace ? 'hourglass_top' : 'add'}
-                  </span>
-                  Create
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          <LogoMark size={26} className="shrink-0" />
+          {!compact ? (
+            <span className="truncate font-heading text-[15px] font-semibold tracking-[-0.01em] text-slate-900 dark:text-white">
+              DocuMind AI
+            </span>
+          ) : null}
+        </Link>
 
-      <div className="flex h-full min-h-0 p-3">
-        {/* Left icon rail */}
-        {collapsed && !mobile ? (
-          <div className="flex w-14 shrink-0 flex-col rounded-2xl border border-white/20 bg-white/10 p-2 text-white">
-            <div className="flex flex-col items-center gap-2">
-              <Link
-                to="/app"
-                onClick={() => onRequestClose?.()}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#5b4ce6] shadow-sm transition-transform hover:scale-[1.02] dark:bg-surface-dark dark:text-white"
-                aria-label="Go to home"
-                title="Home"
-              >
-                <LogoMark size={22} className="shrink-0" />
-              </Link>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
-                aria-label="Expand sidebar"
-                onClick={() => {
-                  setCollapsed(false)
-                  writeCollapsed(false)
-                }}
-              >
-                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-              </button>
-            </div>
-
-            <nav className="mt-4 flex flex-1 flex-col items-center gap-2">
-              {NAV_ITEMS.map((it) => (
-                <NavLink
-                  key={it.to}
-                  className={railNavClass}
-                  to={it.to}
-                  end={it.end as true | undefined}
-                  title={it.label}
-                    onClick={() => onRequestClose?.()}
-                >
-                  <span className="material-symbols-outlined text-[18px]">{it.icon}</span>
-                </NavLink>
-              ))}
-            </nav>
-
-            <div className="mt-auto flex flex-col items-center gap-2">
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
-                onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-                aria-label="Toggle theme"
-                title="Toggle theme"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  {theme === 'dark' ? 'dark_mode' : 'light_mode'}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition-colors hover:bg-white/25"
-                onClick={() => logout()}
-                aria-label="Logout"
-                title="Logout"
-              >
-                <span className="material-symbols-outlined text-[16px]">logout</span>
-              </button>
-            </div>
-          </div>
+        {mobile ? (
+          <button type="button" className={`${ICON_BUTTON} ml-auto`} aria-label="Close navigation" onClick={onRequestClose}>
+            <Icon name="close" size={18} />
+          </button>
         ) : null}
-        {/* Right content panel (expanded) */}
-        {!collapsed ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/10 transition-all duration-300 ease-in-out dark:border-primary/20 dark:bg-surface-dark/60">
-            
-            <div className="border-b border-white/20 px-3 py-3">
-           
-              {state.status === 'ready' ? (
-                  <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                  <Link
-                    to="/app"
-                    onClick={() => onRequestClose?.()}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white transition-transform hover:scale-[1.02] dark:border-primary/20 dark:bg-surface-dark"
-                    aria-label="Go to home"
-                    title="Home"
-                  >
-                    <LogoMark size={18} className="shrink-0" />
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-extrabold tracking-tight text-white">DocuMind AI</p>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-200/90">Knowledge Workspace</p>
-                  </div>
-                  {mobile ? (
-                    <button
-                      type="button"
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
-                      aria-label="Close menu"
-                      title="Close"
-                      onClick={() => onRequestClose?.()}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                  ) : null}
-                  {!mobile ? (
-                    <button
-                    type="button"
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
-                    aria-label="Collapse sidebar"
-                    title="Collapse sidebar"
-                    onClick={() => {
-                      setCollapsed(true)
-                      writeCollapsed(true)
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">menu_open</span>
-                    </button>
-                  ) : null}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <div className="relative min-w-0 flex-1" ref={workspaceMenuRef}>
-                      <button
-                        type="button"
-                        className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-[13px] font-semibold text-white transition-colors hover:bg-white/20 dark:border-primary/20 dark:bg-primary/10 dark:hover:bg-primary/15"
-                        onClick={() => setWorkspaceOpen((v) => !v)}
-                        aria-expanded={workspaceOpen}
-                        aria-label="Select workspace"
-                      >
-                        <span className="flex min-w-0 items-center gap-2 truncate">
-                          <span className="material-symbols-outlined text-[16px] text-slate-200">workspaces</span>
-                          <span className="truncate">{activeWorkspaceName}</span>
-                        </span>
-                        <span className="material-symbols-outlined text-[16px] text-slate-200">expand_more</span>
-                      </button>
 
-                      {workspaceOpen ? (
-                        <div className="absolute right-0 top-11 z-30 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#4f40d8] shadow-lg dark:border-primary/20 dark:bg-surface-dark">
-                          <div className="custom-scrollbar max-h-64 overflow-y-auto p-2">
-                            {state.items.map((w) => {
-                              const active = w.id === state.activeWorkspaceId
-                              return (
-                                <button
-                                  key={w.id}
-                                  type="button"
-                                  className={[
-                                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
-                                    active ? 'bg-white/20 text-white' : 'text-slate-100 hover:bg-white/10',
-                                  ].join(' ')}
-                                  onClick={() => {
-                                    setActiveWorkspaceId(w.id)
-                                    setWorkspaceOpen(false)
-                                  }}
-                                >
-                                  <span className="truncate">{w.name}</span>
-                                  {active ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
+        {!mobile && !compact ? (
+          <button
+            type="button"
+            className={`${ICON_BUTTON} ml-auto`}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+            onClick={toggleCollapsed}
+          >
+            <Icon name="panelClose" size={18} />
+          </button>
+        ) : null}
+      </div>
 
-                    <button
-                      type="button"
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
-                      aria-label="Add workspace"
-                      title="Add workspace"
+      <div className={['custom-scrollbar min-h-0 flex-1 overflow-y-auto py-4', compact ? 'px-3' : 'px-3'].join(' ')}>
+        {compact ? (
+          <div className="mb-2 flex justify-center">
+            <button
+              type="button"
+              className={ICON_BUTTON}
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+              onClick={toggleCollapsed}
+            >
+              <Icon name="panelOpen" size={18} />
+            </button>
+          </div>
+        ) : (
+          <p className="saas-label px-3 pb-2">Menu</p>
+        )}
+
+        <nav className={['flex flex-col gap-1', compact ? 'items-center' : ''].join(' ')}>
+          {NAV_ITEMS.map((it) => (
+            <NavLink
+              key={it.to}
+              to={it.to}
+              end={it.end}
+              className={navItemClass(compact)}
+              title={compact ? it.label : undefined}
+              onClick={() => onRequestClose?.()}
+            >
+              <Icon name={it.icon} size={18} className="shrink-0" />
+              {!compact ? <span className="truncate">{it.label}</span> : null}
+            </NavLink>
+          ))}
+        </nav>
+
+        {!compact ? (
+          <div className="mt-6">
+            <button
+              type="button"
+              className="saas-label flex w-full items-center justify-between rounded-lg px-3 py-1.5 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
+              onClick={() => setRecentOpen((v) => !v)}
+              aria-expanded={recentOpen}
+            >
+              <span className="flex items-center gap-1.5">
+                <Icon name="history" size={14} />
+                Recent chats
+              </span>
+              <Icon
+                name="chevronDown"
+                size={14}
+                className={recentOpen ? 'transition-transform' : '-rotate-90 transition-transform'}
+              />
+            </button>
+
+            {recentOpen ? (
+              <div className="mt-1 flex flex-col gap-0.5">
+                {recentChats.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">No recent chats yet.</p>
+                ) : (
+                  recentChats.map((c) => (
+                    <Link
+                      key={c.id}
+                      to={`/app/chat?chatId=${c.id}`}
+                      title={c.title}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       onClick={() => {
-                        setWorkspaceOpen(false)
-                        setWorkspaceName('')
-                        setWorkspaceModalOpen(true)
+                        void refreshRecent()
+                        onRequestClose?.()
                       }}
                     >
-                      <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-9 w-full animate-pulse rounded-lg bg-white/10" />
-              )}
-            </div>
-
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <div className="px-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Navigation</p>
-              </div>
-              <nav className="mt-2 space-y-1">
-                {NAV_ITEMS.map((it) => (
-                  <NavLink
-                    key={it.to}
-                    className={panelNavClass}
-                    to={it.to}
-                    end={it.end as true | undefined}
-                    onClick={() => onRequestClose?.()}
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 ">
-                      <span className="material-symbols-outlined text-[16px]">{it.icon}</span>
-                    </span>
-                    <span className="text-[13px] font-semibold">{it.label}</span>
-                  </NavLink>
-                ))}
-              </nav>
-
-              <div className="mt-5 rounded-2xl border border-white/15 bg-white/5 p-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-200/90 transition-colors hover:bg-white/10"
-                  onClick={() => setRecentOpen((v) => !v)}
-                  aria-label="Toggle recent chats"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[15px]">history</span>
-                    Recent chats
-                  </span>
-                  <span className="material-symbols-outlined text-[18px]">{recentOpen ? 'expand_less' : 'expand_more'}</span>
-                </button>
-
-                {recentOpen ? (
-                  <div className="mt-1 space-y-1">
-                    {recentChats.length === 0 ? (
-                      <div className="px-2 py-2 text-sm text-slate-200/80">No recent chats.</div>
-                    ) : (
-                      recentChats.map((c) => (
-                        <Link
-                          key={c.id}
-                          to={`/app/chat?chatId=${c.id}`}
-                          className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10"
-                          title={c.title}
-                          onClick={() => {
-                            void refreshRecent()
-                            onRequestClose?.()
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[16px] text-slate-300">forum</span>
-                            <span className="truncate">{c.title}</span>
-                          </div>
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="border-t border-white/20 px-3 py-3 dark:border-primary/20">
-              <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-200/85">Account</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-xs font-extrabold text-white">
-                    {initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-white">
-                      {authState.status === 'authenticated' ? authState.user.full_name || 'Account' : 'Account'}
-                    </p>
-                    <p className="truncate text-xs text-slate-200/90">
-                      {authState.status === 'authenticated' ? authState.user.email : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-col gap-2">
-                  <ThemeToggle />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      to="/app/settings"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
-                      Profile
+                      <Icon name="chat" size={16} className="shrink-0 text-slate-400" />
+                      <span className="truncate">{c.title}</span>
                     </Link>
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
-                      onClick={() => logout()}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">logout</span>
-                      Logout
-                    </button>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
-
-              <div className="mt-3 rounded-2xl bg-white/10 p-3 dark:bg-primary/10">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-white">Get more power</p>
-                    <p className="mt-1 text-xs text-slate-200/90">Upgrade for higher limits and faster processing.</p>
-                  </div>
-                  <span className="material-symbols-outlined text-white/80">diamond</span>
-                </div>
-                <Link
-                  to="/app/billing"
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-extrabold text-[#5b4ce6] transition-colors hover:bg-slate-100 dark:bg-background-dark dark:text-slate-100 dark:hover:bg-primary/10"
-                >
-                  Manage plan
-                </Link>
-              </div>
-            </div>
+            ) : null}
           </div>
         ) : null}
+      </div>
+
+      <div
+        className={[
+          'shrink-0 border-t border-slate-200 dark:border-slate-800',
+          compact ? 'flex justify-center px-2 py-3' : 'px-3 py-3',
+        ].join(' ')}
+      >
+        {compact ? (
+          <Link
+            to="/app/billing"
+            className={ICON_BUTTON}
+            aria-label="Upgrade plan"
+            title="Upgrade plan"
+            onClick={() => onRequestClose?.()}
+          >
+            <Icon name="crown" size={18} />
+          </Link>
+        ) : (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-white/5">
+            <div className="flex items-center gap-2">
+              <Icon name="crown" size={15} className="shrink-0 text-primary dark:text-primary-dark" />
+              <p className="text-sm font-medium text-slate-900 dark:text-white">Upgrade plan</p>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Higher limits and faster processing.
+            </p>
+            <Link
+              to="/app/billing"
+              className="mt-3 flex h-8 items-center justify-center rounded-lg bg-primary text-xs font-medium text-white transition-colors hover:bg-primary/90"
+              onClick={() => onRequestClose?.()}
+            >
+              View plans
+            </Link>
+          </div>
+        )}
       </div>
     </aside>
   )
 }
-

@@ -14,7 +14,7 @@ body {
 @layer base {
   body {
     margin: 0;
-    background: #e0e3f2;
+    background: #f8fafc;
     color: #0f172a;
     font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -22,7 +22,7 @@ body {
   }
 
   .dark body {
-    background: #121022;
+    background: #0f172a;
     color: #f8fafc;
   }
 
@@ -47,41 +47,78 @@ body {
 }
 
 @layer utilities {
-  /* Global gradient treatment for app wrappers using background utility tokens */
   .bg-background-light {
-    background: #e0e3f2;
+    background: #f8fafc;
   }
 
   .dark .dark\:bg-background-dark {
-    background: #121022;
+    background: #0f172a;
   }
 }
 
 @layer components {
-  .saas-board {
-    @apply rounded-none border-0 bg-[#e0e3f2] shadow-2xl dark:bg-background-dark;
-  }
-
+  /* Surfaces */
   .saas-card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-primary/20 dark:bg-surface-dark;
+    @apply rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-surface-dark;
   }
 
   .saas-card-muted {
-    @apply rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-primary/20 dark:bg-accent-dark;
+    @apply rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-white/5;
   }
 
+  /* Typography scale: display levels use the heading face, UI text uses Inter.
+     1 title · 2 stat · 3 section title · 4 body · 5 subtitle/meta · 6 label */
   .saas-title {
-    @apply text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+    @apply font-heading text-[22px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 dark:text-white;
+  }
+
+  .saas-stat {
+    @apply font-heading text-[20px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900 dark:text-white;
+  }
+
+  .saas-section-title {
+    @apply font-heading text-[15px] font-semibold tracking-[-0.01em] text-slate-900 dark:text-white;
   }
 
   .saas-subtitle {
-    @apply mt-1 text-sm text-slate-500 dark:text-slate-400;
+    @apply mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400;
   }
 
-  .saas-gradient-panel {
-    background:
-      radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.22), transparent 34%),
-      linear-gradient(135deg, #4f6df5 0%, #5d4ce6 50%, #6d53ea 100%);
-    @apply rounded-2xl text-white shadow-lg shadow-indigo-500/20;
+  .saas-meta {
+    @apply text-xs text-slate-500 dark:text-slate-400;
+  }
+
+  .saas-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400;
+  }
+
+  /* Forms */
+  .saas-input {
+    @apply h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-background-dark dark:text-slate-100;
+  }
+
+  /* Buttons: pair the base `saas-btn` with one variant class. */
+  .saas-btn {
+    @apply inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .saas-btn-primary {
+    @apply bg-primary text-white hover:bg-primary/90;
+  }
+
+  .saas-btn-secondary {
+    @apply border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-white/5;
+  }
+
+  .saas-btn-danger {
+    @apply bg-rose-600 text-white hover:bg-rose-700;
+  }
+
+  .saas-icon-btn {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white;
+  }
+
+  .saas-badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium;
   }
 }

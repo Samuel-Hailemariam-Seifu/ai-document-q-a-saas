@@ -2,19 +2,53 @@ from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Prisma/Supabase URL params that libpq/psycopg do not accept.
+_NON_LIBPQ_QUERY_KEYS = frozenset({"pgbouncer", "schema"})
+
+
+def _normalize_postgres_url(url: str) -> str:
+    """Prefer psycopg v3 and drop non-libpq query params (e.g. pgbouncer=true)."""
+    if url.startswith("postgresql://") and "+" not in url.split("//", 1)[0]:
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+
+    if "?" not in url:
+        return url
+
+    base, query = url.split("?", 1)
+    fragment = ""
+    if "#" in query:
+        query, fragment = query.split("#", 1)
+        fragment = "#" + fragment
+
+    kept: list[str] = []
+    for part in query.split("&"):
+        if not part:
+            continue
+        key = part.split("=", 1)[0].lower()
+        if key in _NON_LIBPQ_QUERY_KEYS:
+            continue
+        kept.append(part)
+
+    if not kept:
+        return base + fragment
+    return f"{base}?{'&'.join(kept)}{fragment}"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/documind"
+    # Session-mode / direct Postgres URL for Alembic (Supabase port 5432). Falls back to database_url.
+    direct_url: str | None = None
 
     @property
     def database_url_normalized(self) -> str:
-        """Use psycopg (v3) driver when plain postgresql:// is set."""
-        url = self.database_url
-        if url.startswith("postgresql://") and "+" not in url.split("//")[0]:
-            return url.replace("postgresql://", "postgresql+psycopg://", 1)
-        return url
+        return _normalize_postgres_url(self.database_url)
+
+    @property
+    def alembic_database_url(self) -> str:
+        """URL for migrations: prefer DIRECT_URL when set (required for PgBouncer/Supabase)."""
+        return _normalize_postgres_url(self.direct_url or self.database_url)
 
     jwt_secret: str = "change_me"
     access_token_expire_minutes: int = 15

@@ -17,6 +17,18 @@ backend/.venv/
 backend/**/__pycache__/
 backend/**/*.pyc
 
+.venv/
+backend/.venv/
+frontend/.venv/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env
+frontend/.venv/
+frontend/**/__pycache__/
+frontend/**/*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

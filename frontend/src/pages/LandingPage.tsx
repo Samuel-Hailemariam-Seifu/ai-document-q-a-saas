@@ -4,10 +4,8 @@ import { LogoMark } from '../components/brand/LogoMark'
 export function LandingPage() {
   return (
     <div className="relative min-h-screen bg-slate-950 font-display text-slate-100 antialiased">
-      {/* Premium background grid + glow */}
+      {/* Background grid */}
       <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.20),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(124,58,237,0.16),transparent_45%)]" />
         <div
           className="absolute inset-0 opacity-[0.25]"
           style={{
@@ -16,7 +14,6 @@ export function LandingPage() {
             backgroundSize: '56px 56px',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950 to-slate-950" />
       </div>
 
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
@@ -56,7 +53,7 @@ export function LandingPage() {
             </Link>
             <Link
               to="/signup"
-              className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             >
               Get started
             </Link>
@@ -70,7 +67,7 @@ export function LandingPage() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
             <div className="text-center lg:text-left">
               <p className="font-heading mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-slate-200/90">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-dark" />
                 Private, citation-backed answers
               </p>
               <h1 className="font-heading text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
@@ -82,7 +79,7 @@ export function LandingPage() {
               <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
                 <Link
                   to="/signup"
-                  className="inline-flex w-full items-center justify-center rounded-full bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-600/25 transition-all hover:bg-indigo-500 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-primary px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-primary/90 sm:w-auto"
                 >
                   Get Started
                 </Link>
@@ -104,7 +101,7 @@ export function LandingPage() {
                     key={item.text}
                     className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200/90 shadow-sm shadow-black/10 lg:justify-start"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-indigo-300">{item.icon}</span>
+                    <span className="material-symbols-outlined text-[18px] text-primary-dark">{item.icon}</span>
                     <span className="font-semibold">{item.text}</span>
                   </div>
                 ))}
@@ -113,18 +110,15 @@ export function LandingPage() {
 
             {/* Clean UI mock (chat + document/citations panel) */}
             <div className="relative">
-              {/* glow behind card */}
-              <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[3rem] bg-gradient-to-r from-indigo-600/25 via-purple-600/20 to-fuchsia-500/15 blur-3xl" />
-
               <div
                 id="demo"
-                className="rounded-3xl border border-white/10 bg-slate-900/55 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl"
+                className="rounded-2xl border border-white/10 bg-slate-900/55 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-indigo-300">folder_data</span>
+                    <span className="material-symbols-outlined text-primary-dark">folder_data</span>
                     <p className="text-sm font-semibold text-white">Document panel</p>
-                    <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-xs font-semibold text-indigo-200">
+                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary-dark">
                       Sources
                     </span>
                   </div>
@@ -135,7 +129,7 @@ export function LandingPage() {
                   {/* Chat */}
                   <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-xl bg-white/5 ring-1 ring-white/10" />
+                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-white/5 ring-1 ring-white/10" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold uppercase tracking-wider text-slate-300/70">
                           Question
@@ -146,7 +140,7 @@ export function LandingPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex items-start gap-3">
-                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-xl bg-indigo-600/20 ring-1 ring-indigo-500/25" />
+                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-primary/20 ring-1 ring-primary/25" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold uppercase tracking-wider text-slate-300/70">
                           AI answer
@@ -156,12 +150,12 @@ export function LandingPage() {
                           beyond the plan’s fair-use limits. After 14 days, refunds are generally not provided.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600/15 px-2.5 py-1 text-xs font-semibold text-indigo-200 ring-1 ring-indigo-500/20">
-                            <span className="material-symbols-outlined text-[16px] text-indigo-300">format_quote</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary-dark ring-1 ring-primary/20">
+                            <span className="material-symbols-outlined text-[16px] text-primary-dark">format_quote</span>
                             2 citations
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-600/15 px-2.5 py-1 text-xs font-semibold text-purple-200 ring-1 ring-purple-500/20">
-                            <span className="material-symbols-outlined text-[16px] text-purple-300">verified</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-200 ring-1 ring-white/15">
+                            <span className="material-symbols-outlined text-[16px] text-slate-300">verified</span>
                             grounded
                           </span>
                         </div>
@@ -192,17 +186,17 @@ export function LandingPage() {
                       ].map((c) => (
                         <div
                           key={`${c.title}-${c.meta}`}
-                          className="rounded-xl border border-white/10 bg-white/5 p-3"
+                          className="rounded-lg border border-white/10 bg-white/5 p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm font-semibold text-white">{c.title}</p>
-                            <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-[11px] font-bold text-indigo-200">
+                            <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary-dark">
                               cited
                             </span>
                           </div>
                           <p className="mt-0.5 text-xs text-slate-300/70">{c.meta}</p>
                           <p className="mt-2 line-clamp-2 text-sm text-slate-200">
-                            <span className="rounded-md bg-indigo-600/15 px-1.5 py-0.5 ring-1 ring-indigo-500/15">
+                            <span className="rounded-md bg-primary/15 px-1.5 py-0.5 ring-1 ring-primary/15">
                               {c.excerpt}
                             </span>
                           </p>
@@ -246,7 +240,7 @@ export function LandingPage() {
                 },
               ].map((f) => (
                 <div key={f.title} className="group">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
                     <span className="material-symbols-outlined text-2xl">{f.icon}</span>
                   </div>
                   <h3 className="font-heading text-lg font-semibold text-slate-900 dark:text-white">
@@ -375,7 +369,7 @@ export function LandingPage() {
 
         {/* CTA */}
         <section className="px-6 py-24">
-          <div className="mx-auto max-w-3xl rounded-3xl bg-primary px-8 py-16 text-center text-white">
+          <div className="mx-auto max-w-3xl rounded-2xl bg-primary px-8 py-16 text-center text-white">
             <h2 className="font-heading text-2xl font-bold sm:text-3xl">
               Ready to get answers from your documents?
             </h2>

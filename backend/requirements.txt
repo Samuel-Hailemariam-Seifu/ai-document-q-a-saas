@@ -20,4 +20,5 @@ pgvector>=0.2
 fastembed>=0.3
 stripe>=10.0
 httpx>=0.27
+rank-bm25>=0.2
 

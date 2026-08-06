@@ -37,7 +37,7 @@ export function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen bg-background-light p-4 font-display text-slate-900 dark:bg-background-dark dark:text-slate-100 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-800">
         <h1 className="text-xl font-semibold">Verify email</h1>
         {!hasToken ? (
           <p className="mt-4 text-sm text-rose-600">Missing or invalid verification token.</p>

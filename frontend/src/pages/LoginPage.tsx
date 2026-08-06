@@ -52,7 +52,7 @@ export function LoginPage() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-xl backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="rounded-lg border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-800">
           <div className="mb-8">
             <h2 className="mb-1 text-xl font-semibold text-slate-900 dark:text-white">
               Welcome Back
@@ -84,7 +84,7 @@ export function LoginPage() {
                   name="email"
                   type="email"
                   placeholder="name@company.com"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
                   required
                 />
               </div>
@@ -111,7 +111,7 @@ export function LoginPage() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-12 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-12 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
                   required
                 />
                 <button
@@ -144,7 +144,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
               Sign in
               <span className="material-symbols-outlined text-xl">
@@ -159,7 +159,7 @@ export function LoginPage() {
                 <span className="w-full border-t border-slate-200 dark:border-slate-800" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-slate-500 dark:bg-[#1a1835]">
+                <span className="bg-white px-2 text-slate-500 dark:bg-slate-800">
                   Or continue with
                 </span>
               </div>

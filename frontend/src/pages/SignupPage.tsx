@@ -38,7 +38,7 @@ export function SignupPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-primary/20 md:px-12">
+      <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800 md:px-12">
         <div className="flex items-center gap-2 text-primary">
           <LogoMark size={32} className="shrink-0" />
           <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
@@ -51,7 +51,7 @@ export function SignupPage() {
           </span>
           <Link
             to="/login"
-            className="flex h-10 min-w-[84px] items-center justify-center rounded-xl bg-primary/10 px-4 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
+            className="flex h-10 min-w-[84px] items-center justify-center rounded-lg bg-primary/10 px-4 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
           >
             Log in
           </Link>
@@ -60,7 +60,7 @@ export function SignupPage() {
 
       <main className="flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-[480px]">
-          <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-xl shadow-primary/5 dark:border-primary/20 dark:bg-primary/5">
+          <div className="rounded-lg border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-800">
             <div className="mb-8">
               <h1 className="mb-2 text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
                 Create your account
@@ -89,7 +89,7 @@ export function SignupPage() {
                     name="full_name"
                     required
                     placeholder="Enter your name"
-                    className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
+                    className="h-14 w-full rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -107,7 +107,7 @@ export function SignupPage() {
                     name="email"
                     required
                     placeholder="name@company.com"
-                    className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
+                    className="h-14 w-full rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function SignupPage() {
                     name="password"
                     required
                     placeholder="Create a password"
-                    className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-primary/30 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
+                    className="h-14 w-full rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-900 placeholder:text-slate-400 transition-all focus:border-transparent focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder:text-slate-500"
                   />
                   <button
                     type="button"
@@ -142,7 +142,7 @@ export function SignupPage() {
                 <input
                   id="terms"
                   type="checkbox"
-                  className="size-5 rounded border-slate-300 bg-white text-primary focus:ring-primary dark:border-primary/30 dark:bg-background-dark"
+                  className="size-5 rounded border-slate-300 bg-white text-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark"
                   required
                 />
                 <label
@@ -163,7 +163,7 @@ export function SignupPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98] hover:bg-primary/90"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 font-bold text-white transition-colors active:scale-[0.98] hover:bg-primary/90"
               >
                 Create Account
                 <span className="material-symbols-outlined">arrow_forward</span>
@@ -172,10 +172,10 @@ export function SignupPage() {
 
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-primary/20" />
+                <div className="w-full border-t border-slate-200 dark:border-slate-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-4 text-slate-500 dark:bg-[#1a182e] dark:text-slate-400">
+                <span className="bg-white px-4 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                   Or sign up with
                 </span>
               </div>
@@ -184,7 +184,7 @@ export function SignupPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-primary/30 dark:hover:bg-primary/10"
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -211,7 +211,7 @@ export function SignupPage() {
 
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-primary/30 dark:hover:bg-primary/10"
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <svg
                   className="h-5 w-5 fill-slate-900 dark:fill-white"

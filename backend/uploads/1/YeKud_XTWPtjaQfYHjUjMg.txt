@@ -1,0 +1,17 @@
+Acme Inc. Onboarding Guide
+
+Section 1 Getting Started
+Create a workspace, then upload your first document (PDF, DOCX, or TXT, up to 25MB).
+Documents are automatically chunked and embedded so you can ask questions right away.
+
+Section 2 Asking Questions
+Open the Assistant tab and ask a question in plain language. Answers are grounded in
+your uploaded documents and include citations back to the exact source chunk.
+
+Section 3 Fair Use Limits
+The Starter plan includes 3 documents and 50 queries per month. The Pro plan removes
+the document limit and raises the monthly query allowance significantly.
+
+Section 4 Inviting Your Team
+Workspaces are currently single-owner. Multi-user workspaces with role-based access
+are on the roadmap (see Future Improvements in the README).

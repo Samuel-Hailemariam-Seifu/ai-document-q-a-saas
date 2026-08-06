@@ -1,0 +1,17 @@
+Acme Inc. Refund Policy
+
+Section 4.1 Eligibility
+Customers may request a refund within fourteen (14) days of purchase, provided the
+service has not been used beyond the plan's fair-use limits described in Section 3.
+
+Section 4.2 Refund Window
+Refunds are available within fourteen (14) days of purchase. After the 14-day period,
+refunds are generally not provided, except where required by local consumer law.
+
+Section 4.3 How to Request
+Email billing@acme.example with your account email and order ID. Approved refunds are
+processed to the original payment method within 5-10 business days.
+
+Section 4.4 Non-Refundable Items
+Custom onboarding services and usage-based overage charges are non-refundable once
+delivered or incurred.

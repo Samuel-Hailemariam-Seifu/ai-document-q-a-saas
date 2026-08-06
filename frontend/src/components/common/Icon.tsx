@@ -1,32 +1,54 @@
 import {
+  AlertTriangle,
+  ArrowLeft,
   Bell,
   Bot,
+  BookOpen,
+  CalendarDays,
+  Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Cloud,
   CreditCard,
+  Crown,
   ExternalLink,
   FileText,
   Folder,
+  History,
   Hourglass,
-  Mail,
+  Info,
+  Layers,
   LayoutDashboard,
+  LayoutGrid,
+  Lightbulb,
   Lock,
+  LogOut,
+  Mail,
+  Menu,
   MessageCircle,
-  Moon,
   Monitor,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Paperclip,
   PlayCircle,
   Plus,
+  RefreshCw,
   Search,
   Send,
   Settings,
   Shield,
   Sparkles,
   Sun,
+  Trash2,
   TrendingUp,
   Upload,
   User,
   Users,
+  X,
   Zap,
   type LucideIcon,
 } from 'lucide-react'
@@ -64,6 +86,28 @@ export type IconName =
   | 'user'
   | 'mail'
   | 'lock'
+  | 'menu'
+  | 'close'
+  | 'chevronDown'
+  | 'chevronRight'
+  | 'panelClose'
+  | 'panelOpen'
+  | 'checkMark'
+  | 'logout'
+  | 'history'
+  | 'crown'
+  | 'workspaces'
+  | 'refresh'
+  | 'trash'
+  | 'arrowLeft'
+  | 'calendar'
+  | 'info'
+  | 'book'
+  | 'panelRightClose'
+  | 'panelRightOpen'
+  | 'alert'
+  | 'layers'
+  | 'lightbulb'
 
 const ICONS: Record<IconName, LucideIcon> = {
   sparkles: Sparkles,
@@ -97,6 +141,28 @@ const ICONS: Record<IconName, LucideIcon> = {
   user: User,
   mail: Mail,
   lock: Lock,
+  menu: Menu,
+  close: X,
+  chevronDown: ChevronDown,
+  chevronRight: ChevronRight,
+  panelClose: PanelLeftClose,
+  panelOpen: PanelLeftOpen,
+  checkMark: Check,
+  logout: LogOut,
+  history: History,
+  crown: Crown,
+  workspaces: LayoutGrid,
+  refresh: RefreshCw,
+  trash: Trash2,
+  arrowLeft: ArrowLeft,
+  calendar: CalendarDays,
+  info: Info,
+  book: BookOpen,
+  panelRightClose: PanelRightClose,
+  panelRightOpen: PanelRightOpen,
+  alert: AlertTriangle,
+  layers: Layers,
+  lightbulb: Lightbulb,
 }
 
 type Props = {

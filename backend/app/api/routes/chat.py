@@ -32,7 +32,7 @@ from app.core.config import settings
 from app.services.retrieval_service import (
     expand_with_neighbors,
     first_chunks_for_documents,
-    top_k_chunks_for_workspace,
+    hybrid_top_k,
 )
 from app.services.workspace_service import get_workspace
 
@@ -185,9 +185,10 @@ def ask(
         name_by_doc = {}
     else:
         query_emb = embed_texts([payload.question])[0]
-        top = top_k_chunks_for_workspace(
+        top = hybrid_top_k(
             db,
             workspace_id=workspace_id,
+            query=payload.question,
             query_embedding=query_emb,
             k=settings.retrieval_top_k,
             document_ids=selected_document_ids,
