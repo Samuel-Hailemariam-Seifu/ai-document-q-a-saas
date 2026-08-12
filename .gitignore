@@ -11,8 +11,24 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Secrets — never commit real credentials
 .env
+.env.*
+!.env.example
+!**/.env.example
 backend/.env
+frontend/.env
+
+# Uploaded user documents (local storage)
+uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/.gitignore
+**/uploads/**
+!**/uploads/.gitkeep
+!**/uploads/.gitignore
+
 backend/.venv/
 backend/**/__pycache__/
 backend/**/*.pyc
@@ -24,7 +40,6 @@ frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
-frontend/.env
 frontend/.venv/
 frontend/**/__pycache__/
 frontend/**/*.pyc

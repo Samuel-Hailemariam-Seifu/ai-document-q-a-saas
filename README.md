@@ -1,469 +1,448 @@
-## AI Document Q&A SaaS
+# DocuMind AI — Document Q&A SaaS (RAG)
 
-Full‑stack AI-powered SaaS platform where users upload documents (PDF/TXT/DOCX) and ask questions against their private workspace knowledge base. The system uses a Retrieval‑Augmented Generation (RAG) pipeline to return **grounded answers with citations**.
+**Chat with your documents.** Upload PDF, TXT, or DOCX files into a private workspace, ask questions, and get answers grounded in your content — with **chunk-level citations** you can verify.
 
-This repository is suitable as:
-- a GitHub portfolio project
-- an MVP foundation for client work (Upwork)
-- a reviewable reference implementation of RAG + async ingestion + SaaS primitives
+Built as a full-stack SaaS MVP: JWT auth, multi-workspace isolation, async (or inline) document ingestion, hybrid retrieval, LLM answers (Groq / OpenAI), optional Stripe billing, and optional Resend email.
 
----
-
-## 🚀 Overview
-
-### What it does
-- Ingests uploaded documents into text chunks + embeddings
-- Retrieves the most relevant chunks per question
-- Generates an answer using an LLM constrained to retrieved context
-- Returns citations (document, chunk, page number, excerpt) to support trust and auditing
-
-### Who it is for
-- Teams building a “Chat with your docs” product
-- Agencies shipping an MVP for a client with clear upgrade paths (billing, email, vector DB)
-- Engineers evaluating a clean FastAPI + React implementation of RAG
-
-### Key value proposition
-- **Trustworthy AI outputs**: citations + “answer only from context” prompting
-- **Workspace isolation**: per-user workspaces with document + chat separation
-- **Scalable pipeline**: async ingestion via Redis + Celery with an inline fallback for simple dev
+| | |
+|---|---|
+| **Live UI** | `http://localhost:5173` (after local setup) |
+| **API** | `http://localhost:8000` · docs at `/docs` |
+| **Demo login** | `demo@documind.ai` / `Demo1234!` (after `seed.py`) |
+| **License** | [MIT](LICENSE) |
 
 ---
 
-## ✨ Features
+## Why this project
 
-### Core Features
-- **Authentication (JWT)**: register/login, access + refresh tokens, current-user endpoint
-- **Workspace management**: create/list/select workspaces (owned by the authenticated user)
-- **Document upload & management**:
-  - Upload PDF/TXT/DOCX (server-side validation; **25MB** max per file)
-  - List documents, view details, delete documents
-  - View extracted chunks for inspection/debugging
-- **Background document processing**:
-  - Extract text (PDF/TXT/DOCX)
-  - Chunking with overlap
-  - Embedding generation (OpenAI or local FastEmbed)
-  - Status tracking: pending/processing/ready/failed + error message
-- **Embeddings + vector search**:
-  - Embeddings persisted in PostgreSQL
-  - Retrieval by cosine similarity (MVP computes similarity in Python; see “Future improvements” for pgvector)
-- **AI chat with documents**:
-  - Workspace-scoped chats
-  - Stores messages and citations
-- **Citation-based answers**: chunk-level citations with excerpts + metadata
-- **Chat history**: list chats; fetch message history for a chat
-
-### Advanced Features
-- **Multi-workspace support**: separate document + chat corpora per workspace
-- **Async processing with Celery**: background ingestion worker via Redis queue
-- **Scalable architecture**: services split by domain (auth, docs, retrieval, LLM, billing, email)
-- **Error handling & status tracking**: ingestion failures are captured and surfaced
-- **Modular backend services**: clean separation of API routes, services, tasks, and models
-- **Billing (Stripe) (MVP-ready)**:
-  - Subscription checkout session
-  - Billing portal session
-  - Webhook handler to sync subscription status into the database
-- **Email flows (optional)**: verify email + reset password via Resend (no-op if not configured)
+- **Portfolio / GitHub** — end-to-end RAG product, not a notebook demo
+- **Client MVP** — clear upgrade path (pgvector, streaming, org RBAC, metering)
+- **Learning reference** — FastAPI + React implementation of ingest → embed → retrieve → generate → cite
 
 ---
 
-## 🧠 How It Works (RAG Explanation)
+## Features
 
-At a high level, each question follows a “retrieve → generate” workflow.
+### Working today
+- **Auth** — register, login, JWT access + refresh, profile update, change password
+- **Workspaces** — create / switch / isolate documents and chats per workspace
+- **Documents** — upload PDF / TXT / DOCX (max **25MB**), list, detail, delete, inspect extracted chunks
+- **Ingestion pipeline** — extract → chunk (overlap) → embed → store; status `pending` → `processing` → `ready` / `failed`
+- **Hybrid RAG chat** — vector cosine similarity + BM25, fused with Reciprocal Rank Fusion (RRF), optional neighbor-chunk expansion
+- **Citations** — document name, chunk id, page (when available), excerpt
+- **Dashboard** — workspace stats (docs, chats, queries, ingestion success)
+- **Theme** — light / dark UI
+- **Billing (optional)** — Stripe Checkout, Customer Portal, webhook sync of subscription status
+- **Email (optional)** — verify email + password reset via Resend (no-op if unset)
 
-### RAG overview diagram (Mermaid)
+### Honest MVP limits
+- Stripe syncs plan **status** only — upload/chat **quotas are not enforced** yet
+- Email flows need `RESEND_API_KEY` or they silently no-op
+- Social login buttons on auth pages are **UI-only** (not wired)
+- Embeddings live in Postgres as `float[]`; similarity is computed in Python (`pgvector` is a dependency for a future upgrade, not used in queries yet)
+
+---
+
+## How it works
+
+### 1. System architecture
 
 ```mermaid
-flowchart TD
-  Q["User question"] --> API["Backend /chat endpoint"];
-  API -->|"optional document_ids filter"| RET["Retriever"];
-  RET -->|"embed question"| QE["Query embedding"];
-  RET -->|"similarity search"| VS[("Chunk embeddings in Postgres")];
-  VS --> TOPK["Top K chunks"];
-  TOPK --> NB["Neighbor expansion optional"];
-  NB --> CTX["Context blocks and citations"];
-  CTX --> PROMPT["Bounded prompt builder"];
-  PROMPT --> LLM["LLM Groq/OpenAI compatible"];
-  LLM --> ANS["Answer text"];
-  CTX --> CITE["Citations doc/chunk/page/excerpt"];
-  ANS --> OUT["API response"];
-  CITE --> OUT;
+flowchart TB
+  subgraph Client
+    FE["React 19 + Vite 8 + Tailwind 4<br/>SPA · JWT in localStorage"]
+  end
+
+  subgraph API["Backend — FastAPI"]
+    AUTH["Auth / JWT"]
+    WS["Workspaces"]
+    DOCS["Documents"]
+    CHAT["Chat + RAG"]
+    BILL["Billing"]
+  end
+
+  subgraph Data
+    PG[("PostgreSQL<br/>users · workspaces · docs<br/>chunks+embeddings · chats · subs")]
+    FS[("Local file storage<br/>STORAGE_PATH / uploads")]
+  end
+
+  subgraph Async["Ingestion modes"]
+    INLINE["Inline<br/>RUN_INGEST_INLINE=true"]
+    CELERY["Celery worker"]
+    REDIS[("Redis broker")]
+  end
+
+  subgraph AI["AI providers"]
+    EMB["Embeddings<br/>OpenAI or FastEmbed local"]
+    LLM["LLM<br/>Groq preferred · else OpenAI"]
+  end
+
+  subgraph Optional
+    STRIPE["Stripe"]
+    RESEND["Resend"]
+  end
+
+  FE -->|REST JSON| AUTH & WS & DOCS & CHAT & BILL
+  AUTH & WS & DOCS & CHAT & BILL --> PG
+  DOCS --> FS
+  DOCS -->|enqueue or call| INLINE
+  DOCS -.->|if not inline| REDIS --> CELERY
+  INLINE & CELERY --> FS
+  INLINE & CELERY --> EMB
+  INLINE & CELERY --> PG
+  CHAT --> EMB
+  CHAT --> LLM
+  BILL --> STRIPE
+  STRIPE -->|webhooks| BILL
+  AUTH -.-> RESEND
 ```
 
-### 1) Document ingestion
-1. User uploads a document to a workspace.
-2. The backend stores the file and creates a `Document` row with status `pending`.
-3. A worker (Celery) or inline job extracts text from the file.
-
-### 2) Chunking
-Extracted text is split into overlapping chunks (configurable chunk size and overlap). Chunking improves retrieval quality by narrowing context to the most relevant sections.
-
-### 3) Embeddings
-Each chunk is converted into a vector embedding:
-- **Preferred**: OpenAI embeddings when `OPENAI_API_KEY` is configured
-- **Fallback**: local embeddings via **FastEmbed** when OpenAI is not configured
-
-### 4) Vector search (retrieval)
-When a user asks a question:
-1. The question is embedded into a query vector.
-2. The system scores stored chunk embeddings against the query (cosine similarity).
-3. The top \(K\) chunks are selected, then optionally expanded with neighbor chunks to provide continuity.
-
-> Note: The MVP stores embeddings in PostgreSQL as a float array and computes similarity in Python. The repo includes `pgvector` as a dependency to support a production upgrade to DB-side vector indexes.
-
-### 5) LLM answer generation
-The LLM is prompted with:
-- strict system instructions (“use only provided context”)
-- the retrieved chunk text blocks
-- the user question
-
-The backend supports **Groq (OpenAI-compatible)** when `GROQ_API_KEY` is set, otherwise **OpenAI** when `OPENAI_API_KEY` is set.
-
-### 6) Citations
-Alongside the answer, the API returns citations including:
-- document id + filename
-- chunk id
-- page number (when available)
-- an excerpt for quick review
-
-This makes responses verifiable and user-friendly.
-
----
-
-## 🏗️ Architecture
-
-### A) Text explanation
-- **Frontend (React + Vite)**: authentication UI, workspace selection, document upload + status, chat UI with citations, billing screen.
-- **Backend (FastAPI)**: REST API, JWT auth, workspace authorization, ingestion orchestration, retrieval, LLM calls, Stripe + webhook endpoints.
-- **PostgreSQL**: persists users, workspaces, documents, chunks (including embeddings), chats, messages, subscriptions.
-- **Redis**: queue and broker for background ingestion.
-- **Celery worker**: executes ingestion tasks (extract → chunk → embed → store) out-of-band.
-- **Storage**: local filesystem path (Docker volume or local directory). The design supports migration to S3-compatible storage.
-- **AI providers**: OpenAI/Groq for LLM; OpenAI or local FastEmbed for embeddings.
-
-### B) Architecture diagram (Mermaid)
+### 2. Document ingestion pipeline
 
 ```mermaid
 flowchart LR
-  U[User] --> FE[Frontend (React + Vite)];
-  FE -->|HTTPS JSON| API[Backend API (FastAPI)];
-
-  subgraph Data[Data and storage]
-    DB[(PostgreSQL)]
-    FS[(File storage<br/>local volume / disk)]
-  end
-
-  subgraph Async[Async ingestion]
-    R[(Redis queue/broker)]
-    W[Celery worker<br/>extract -> chunk -> embed -> store]
-  end
-
-  subgraph Providers[External providers (optional)]
-    LLM[LLM provider<br/>Groq/OpenAI compatible]
-    EMB[Embeddings<br/>OpenAI or local FastEmbed]
-    STRIPE[Stripe Billing]
-    RESEND[Resend Email]
-  end
-
-  API --> DB
-  API --> FS
-  API --> R
-  R --> W
-  W --> DB
-  W --> FS
-
-  API -->|answers| LLM;
-  API -->|embed query/chunks| EMB;
-  API --> STRIPE;
-  STRIPE -->|webhooks| API;
-  API --> RESEND;
+  A["Upload file<br/>PDF / TXT / DOCX"] --> B["Save to disk<br/>Create Document<br/>status = pending"]
+  B --> C{"RUN_INGEST_INLINE?"}
+  C -->|true| D["In-process ingest"]
+  C -->|false| E["Celery task via Redis"]
+  D --> F["status = processing"]
+  E --> F
+  F --> G["Extract text"]
+  G --> H["Chunk + overlap"]
+  H --> I["Embed chunks"]
+  I --> J["Store DocumentChunk rows<br/>status = ready"]
+  F -.->|on error| K["status = failed<br/>+ error_message"]
 ```
 
-### C) Request flow (Mermaid)
+### 3. Ask flow (hybrid RAG)
+
+```mermaid
+flowchart TD
+  Q["User question<br/>optional document_ids filter"] --> E["Embed question"]
+  Q --> B["BM25 over chunk text"]
+  E --> V["Cosine similarity<br/>vs stored embeddings"]
+  V --> RRF["Reciprocal Rank Fusion"]
+  B --> RRF
+  RRF --> TOP["Top-K chunks"]
+  TOP --> N["Neighbor expansion<br/>RETRIEVAL_NEIGHBOR_WINDOW"]
+  N --> CTX["Context blocks + citation metadata"]
+  CTX --> P["Prompt: answer only from context"]
+  P --> L["LLM · Groq or OpenAI"]
+  L --> OUT["Answer + citations<br/>persisted on chat messages"]
+```
+
+### 4. Sequence: upload then ask
 
 ```mermaid
 sequenceDiagram
   autonumber
-  participant U as User
-  participant FE as Frontend
+  actor U as User
+  participant FE as React SPA
   participant API as FastAPI
   participant FS as File storage
-  participant R as Redis
-  participant W as Celery worker
-  participant DB as Postgres
+  participant W as Ingest<br/>(inline or Celery)
+  participant DB as PostgreSQL
   participant EMB as Embeddings
   participant LLM as LLM
 
   U->>FE: Upload document
-  FE->>API: POST /documents/upload
-  API->>FS: Save file
-  API->>DB: Create Document(status=pending)
-  API->>R: Enqueue ingest job (or inline)
-  R->>W: Dispatch job
+  FE->>API: POST /api/workspaces/{id}/documents/upload
+  API->>FS: Save bytes
+  API->>DB: Document(pending)
+  API->>W: Start ingest
   W->>FS: Read file
-  W->>W: Extract text + chunk
+  W->>W: Extract → chunk
   W->>EMB: Embed chunks
-  W->>DB: Store chunks + embeddings\nDocument(status=ready)
+  W->>DB: Chunks + embeddings · Document(ready)
+  API-->>FE: Document metadata
 
-  U->>FE: Ask question (optionally docIds)
-  FE->>API: POST /chat {question, document_ids?}
+  U->>FE: Ask question
+  FE->>API: POST /api/workspaces/{id}/chat
   API->>EMB: Embed question
-  API->>DB: Retrieve top chunks\n(filtered by document_ids if provided)
-  API->>LLM: Generate answer from context
-  API->>DB: Store messages + citations
+  API->>DB: Hybrid retrieve (vector + BM25 → RRF)
+  API->>LLM: Generate from retrieved context
+  API->>DB: Save user + assistant messages + citations
   API-->>FE: Answer + citations
-  FE-->>U: Render response + sources
+  FE-->>U: Render chat + sources panel
+```
+
+### 5. Data model (simplified)
+
+```mermaid
+erDiagram
+  USER ||--o{ WORKSPACE : owns
+  USER ||--o{ SUBSCRIPTION : has
+  WORKSPACE ||--o{ DOCUMENT : contains
+  WORKSPACE ||--o{ CHAT : contains
+  DOCUMENT ||--o{ DOCUMENT_CHUNK : split_into
+  CHAT ||--o{ MESSAGE : has
+
+  USER {
+    int id
+    string email
+    string password_hash
+  }
+  WORKSPACE {
+    int id
+    int owner_id
+    string name
+  }
+  DOCUMENT {
+    int id
+    int workspace_id
+    string status
+    string original_name
+  }
+  DOCUMENT_CHUNK {
+    int id
+    int document_id
+    int chunk_index
+    float[] embedding
+    text content
+  }
+  CHAT {
+    int id
+    int workspace_id
+    string title
+  }
+  MESSAGE {
+    int id
+    int chat_id
+    string role
+    text content
+    json citations
+  }
+  SUBSCRIPTION {
+    int id
+    string status
+    string stripe_customer_id
+  }
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech stack
 
-### Frontend
-- React + TypeScript
-- Vite
-- Tailwind CSS
-
-> If you prefer **Next.js**, the API contract and UI flows are already compatible; migrating the SPA to Next.js is straightforward.
-
-### Backend
-- FastAPI
-- SQLAlchemy + Alembic
-- Celery (async ingestion)
-
-### Database & Infra
-- PostgreSQL
-- Redis
-- (Upgrade path) **pgvector** for indexed vector search
-
-### AI
-- OpenAI API (embeddings + chat completions)
-- Groq API (OpenAI-compatible, optional)
-- Local embeddings via FastEmbed (fallback)
+| Layer | Choices |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4, Lucide icons |
+| **Backend** | FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, Celery, Redis |
+| **Database** | PostgreSQL (psycopg3) |
+| **Embeddings** | OpenAI `text-embedding-3-small` **or** local FastEmbed `BAAI/bge-small-en-v1.5` |
+| **LLM** | Groq (`llama-3.1-8b-instant`) preferred · else OpenAI (`gpt-4o-mini`) |
+| **Retrieval** | Cosine similarity + BM25 + RRF (+ neighbor window) |
+| **Billing** | Stripe Checkout / Portal / webhooks |
+| **Email** | Resend (optional) |
+| **Infra** | Docker Compose · local disk uploads |
 
 ---
 
-## 📁 Project Structure
+## Project structure
 
-```bash
-frontend/           # React UI (Vite + Tailwind)
-backend/            # FastAPI app, DB models/migrations, Celery tasks
-docker-compose.yml  # Local production-like stack (db, redis, api, worker, frontend)
+```text
+ai-document-q-a-saas/
+├── frontend/                 # React SPA
+│   ├── src/
+│   │   ├── app/              # Router
+│   │   ├── auth/             # Auth context + token storage
+│   │   ├── components/       # Layout, UI primitives
+│   │   ├── pages/            # Landing, auth, dashboard, docs, chat, billing, settings
+│   │   ├── services/         # API clients
+│   │   └── workspaces/       # Active workspace context
+│   ├── UI/                   # Portfolio screenshots
+│   └── scripts/              # Screenshot capture (Playwright)
+├── backend/
+│   ├── app/
+│   │   ├── api/routes/       # HTTP endpoints
+│   │   ├── services/         # Auth, docs, retrieval, LLM, embeddings, Stripe, email
+│   │   ├── tasks/            # Celery ingest
+│   │   ├── models/           # SQLAlchemy models
+│   │   ├── schemas/          # Pydantic schemas
+│   │   ├── core/             # Config, DB, security
+│   │   └── utils/            # Extraction, chunking
+│   ├── alembic/              # Migrations
+│   ├── seed.py               # Demo user + sample docs
+│   └── uploads/              # Local files (gitignored)
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## ⚙️ Setup Instructions
+## Quick start (local)
 
 ### Prerequisites
-- Node.js 20+
-- Python 3.11+
-- PostgreSQL 16+
-- (Optional) Redis 7+ for background ingestion
-- (Optional) Docker + Docker Compose for one-command setup
+- Node.js **20+**
+- Python **3.11+**
+- PostgreSQL **16+** (local or Supabase)
+- Optional: Redis **7+** (only if `RUN_INGEST_INLINE=false`)
 
----
-
-### Backend setup (recommended for local dev)
+### 1) Backend
 
 ```bash
 cd backend
 python -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt
 copy .env.example .env
-.\.venv\Scripts\python -m alembic upgrade head
+# Edit .env — set DATABASE_URL, JWT_SECRET, and preferably:
+#   RUN_INGEST_INLINE=true
+#   GROQ_API_KEY=...   (or OPENAI_API_KEY)
+.\.venv\Scripts\python -m alembic -c alembic.ini upgrade head
 .\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Health check:
-- `GET http://localhost:8000/health`
+Health: [http://localhost:8000/health](http://localhost:8000/health) · OpenAPI: [http://localhost:8000/docs](http://localhost:8000/docs)
 
----
+**Seed demo data** (optional):
 
-### Frontend setup
+```bash
+.\.venv\Scripts\python seed.py
+```
+
+| Field | Value |
+|---|---|
+| Email | `demo@documind.ai` |
+| Password | `Demo1234!` |
+| Workspace | `Acme Support` |
+
+### 2) Frontend
 
 ```bash
 cd frontend
 npm install
+# optional: create .env with VITE_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-Create `frontend/.env` from `frontend/.env.example`:
+App: [http://localhost:5173](http://localhost:5173)
 
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
+### 3) Celery mode (optional)
 
-Frontend:
-- `http://localhost:5173`
-
----
-
-### Running with Docker (production-like)
-
-Set env vars in your shell (at minimum one of `GROQ_API_KEY` or `OPENAI_API_KEY`), then:
+If `RUN_INGEST_INLINE=false`:
 
 ```bash
+# terminal A — Redis must be running
+# terminal B
+cd backend
+.\.venv\Scripts\celery -A app.tasks.celery_app worker --loglevel=info
+```
+
+### Docker
+
+```bash
+# Set GROQ_API_KEY or OPENAI_API_KEY in the environment, then:
 docker compose up --build
 ```
 
-Services:
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8000`
-- Postgres: `localhost:5432`
-- Redis: `localhost:6379`
-
 ---
 
-## Environment Variables
+## Environment variables
 
 ### Frontend (`frontend/.env`)
-- `VITE_API_BASE_URL` (example: `http://localhost:8000`)
+
+| Variable | Purpose |
+|---|---|
+| `VITE_API_BASE_URL` | Backend origin (default `http://localhost:8000`) |
 
 ### Backend (`backend/.env`)
 
-#### Core
-- `DATABASE_URL` (example: `postgresql+psycopg://postgres:postgres@localhost:5432/documind`)
-- `JWT_SECRET`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `REFRESH_TOKEN_EXPIRE_DAYS`
-- `BACKEND_CORS_ORIGINS` (comma-separated list; example `http://localhost:5173`)
-- `STORAGE_PATH` (local directory for uploaded files)
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres URL (`postgresql+psycopg://…`) |
+| `DIRECT_URL` | Optional session/direct URL for Alembic (e.g. Supabase port `5432`) |
+| `JWT_SECRET` | Signing secret — use a long random value outside local demos |
+| `BACKEND_CORS_ORIGINS` | Comma-separated origins (e.g. `http://localhost:5173`) |
+| `STORAGE_PATH` | Upload directory (default `uploads`) |
+| `RUN_INGEST_INLINE` | `true` = ingest in API process (best for Windows / no Redis) |
+| `REDIS_URL` | Celery broker when not inline |
+| `GROQ_API_KEY` | Preferred LLM |
+| `OPENAI_API_KEY` | OpenAI embeddings and/or LLM fallback |
+| `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
+| `LOCAL_EMBEDDING_MODEL` | Default `BAAI/bge-small-en-v1.5` |
+| `LLM_MODEL` | Groq default `llama-3.1-8b-instant` |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking |
+| `RETRIEVAL_TOP_K` / `RETRIEVAL_NEIGHBOR_WINDOW` | Retrieval |
+| `STRIPE_*` | Optional billing |
+| `RESEND_API_KEY` / `EMAIL_FROM` / `FRONTEND_BASE_URL` | Optional email |
+| `REQUIRE_EMAIL_VERIFICATION` | Gate login on verified email |
 
-#### Ingestion
-- `RUN_INGEST_INLINE` (`true` = ingest in API process; `false` = enqueue Celery job)
-- `REDIS_URL` (required for Celery mode; example `redis://localhost:6379/0`)
-
-#### AI provider (set at least one)
-- `GROQ_API_KEY` (preferred for LLM if set)
-- `OPENAI_API_KEY` (required for OpenAI embeddings and/or OpenAI LLM)
-
-Optional model tuning:
-- `OPENAI_EMBEDDING_MODEL` (default: `text-embedding-3-small`)
-- `LOCAL_EMBEDDING_MODEL` (default: `BAAI/bge-small-en-v1.5`)
-- `LLM_MODEL` (Groq default: `llama-3.1-8b-instant`)
-- `CHUNK_SIZE`, `CHUNK_OVERLAP`
-- `RETRIEVAL_TOP_K`, `RETRIEVAL_NEIGHBOR_WINDOW`
-
-#### Billing (Stripe) (optional)
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_PRO_MONTHLY` (must start with `price_`)
-- `STRIPE_SUCCESS_URL`
-- `STRIPE_CANCEL_URL`
-
-#### Email (Resend) (optional)
-- `FRONTEND_BASE_URL`
-- `RESEND_API_KEY`
-- `EMAIL_FROM`
-- `REQUIRE_EMAIL_VERIFICATION`
+See `backend/.env.example` for a full template.
 
 ---
 
-## 🔄 API Overview
+## API overview
 
-High-level endpoints (REST):
+Interactive docs: `GET /docs`
 
-### Auth (`/api/auth`)
-- `POST /register`
-- `POST /login`
-- `POST /refresh`
-- `GET /me`
-- `POST /request-verification`
-- `POST /verify-email`
-- `POST /forgot-password`
-- `POST /reset-password`
-
-### Workspaces (`/api/workspaces`)
-- `GET /api/workspaces`
-- `POST /api/workspaces`
-- `GET /api/workspaces/{workspace_id}`
-
-### Documents
-- `GET /api/workspaces/{workspace_id}/documents`
-- `POST /api/workspaces/{workspace_id}/documents/upload`
-- `GET /api/documents/{document_id}`
-- `GET /api/documents/{document_id}/chunks`
-- `DELETE /api/documents/{document_id}`
-
-### Chat
-- `GET /api/workspaces/{workspace_id}/chats`
-- `POST /api/workspaces/{workspace_id}/chats`
-- `GET /api/chats/{chat_id}/messages?workspace_id=...`
-- `POST /api/workspaces/{workspace_id}/chat`
-
-### Billing (`/api/billing`) (optional)
-- `GET /api/billing/workspaces/{workspace_id}`
-- `POST /api/billing/workspaces/{workspace_id}/checkout`
-- `POST /api/billing/workspaces/{workspace_id}/portal`
-- `POST /api/billing/webhook`
+| Area | Endpoints |
+|---|---|
+| **Auth** | `POST /api/auth/register` · `login` · `refresh` · `GET /me` · `PUT /profile` · `POST /change-password` · verify / forgot / reset |
+| **Workspaces** | `GET/POST /api/workspaces` · `GET /{id}` · `GET /{id}/stats` |
+| **Documents** | `GET/POST …/documents` · `GET/DELETE /api/documents/{id}` · `GET …/chunks` |
+| **Chat** | `GET/POST …/chats` · `GET …/chats/recent` · `GET /api/chats/{id}/messages` · `POST …/chat` (ask) · `DELETE` chat |
+| **Billing** | `GET …/billing/workspaces/{id}` · `checkout` · `portal` · `POST /api/billing/webhook` |
+| **Health** | `GET /health` |
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-Screenshots live in `frontend/UI/`.
+Screenshots live in [`frontend/UI/`](frontend/UI/). Regenerate after UI changes:
 
-### Dashboard
+```bash
+cd frontend
+npx playwright install chromium
+npm run screenshots
+```
 
-![Dashboard (dark theme)](frontend/UI/dashboardpage-darktheme.png)
-![Dashboard (light theme)](frontend/UI/dashboardpage-lighththeme.png)
-![Dashboard (light theme, open sidebar)](frontend/UI/dashboardpage-light%20theme%20opensidebar.png)
-![Dashboard (dark theme, open sidebar)](frontend/UI/dashboardpage-open%20sidebar%20darktheme.png)
+Uses the seeded demo account (`demo@documind.ai`).
 
-### Sidebar & workspace
+### Product
 
-![Sidebar (light theme)](frontend/UI/sidebar-lightthme.png)
-![Sidebar (dark theme)](frontend/UI/sidebar%20darktheme.png)
-![Add workspace modal (light theme)](frontend/UI/addworkspace-modal-lighttheme.png)
+![Landing](frontend/UI/landing-dark.png)
+![Login](frontend/UI/login.png)
 
-### Documents
+### App — light
 
-![Documents page (dark theme)](frontend/UI/documentspage-darktheme.png)
-![Documents page (light theme, open sidebar)](frontend/UI/documentspage-lighththeme%20open%20sidebar.png)
-![Document detail (light theme)](frontend/UI/document%20detail%20page%20light%20theme.png)
-![Document detail (dark theme)](frontend/UI/document%20detail%20page-%20darktheme.png)
-![Extracted chunks (light theme)](frontend/UI/extracted%20chunks%20light%20theme.png)
-![Extracted chunks (dark theme)](frontend/UI/extracted%20chunks%20darktheme.png)
+![Dashboard](frontend/UI/dashboard-light.png)
+![Documents](frontend/UI/documents-light.png)
+![Assistant](frontend/UI/chat-light.png)
+![Billing](frontend/UI/billing-light.png)
+![Settings](frontend/UI/settings-light.png)
 
-### Chat
+### App — dark
 
-![Chat page (light theme)](frontend/UI/chatpage%20-%20lighttheme.png)
-![Chat page (dark theme)](frontend/UI/chatpage-darktheme.png)
-![Add new chat (light theme)](frontend/UI/add%20new%20chat-light%20theme.png)
-![Add name to chatbot](frontend/UI/add%20name%20to%20chatboat.png)
-![Chat (hidden sidebars)](frontend/UI/chatboat-hidden%20sidebars.png)
-![Chat (sidebars hidden)](frontend/UI/chatboat-sidebars%20hidden.png)
-
-### Billing
-
-![Billing page (dark theme)](frontend/UI/billingpage-darktheme.png)
-![Billing page (light theme, open sidebar)](frontend/UI/billingpage-open%20sidebar%20lighttheme.png)
-![Stripe integrated](frontend/UI/stripe%20integrated.png)
+![Dashboard dark](frontend/UI/dashboard-dark.png)
+![Documents dark](frontend/UI/documents-dark.png)
+![Assistant dark](frontend/UI/chat-dark.png)
+![Billing dark](frontend/UI/billing-dark.png)
+![Settings dark](frontend/UI/settings-dark.png)
 
 ---
 
-## 🚀 Future Improvements
+## Roadmap
 
-Practical upgrades for a production SaaS:
-- **pgvector + ANN indexes** for fast DB-side retrieval at scale (HNSW/IVFFlat)
-- **Streaming responses** (SSE/WebSockets) for better chat UX
-- **Role-based access control** (orgs, members, permissions)
-- **Usage metering & rate limits** (per workspace / plan)
-- **More ingestion formats** (HTML, PPTX) + OCR for scanned PDFs
-- **Model routing** (quality/cost tiers, fallbacks, evals)
-- **Analytics** (query volume, ingestion time, retrieval quality metrics)
-- **Integrations** (Slack, Teams, WhatsApp, Drive/Dropbox)
+High-impact upgrades for a production SaaS:
 
----
-
-## 📄 License
-
-This project is **proprietary** and **personally owned**.
-
-See `LICENSE` for terms (no license is granted unless explicitly stated there).
+- [ ] **pgvector** + HNSW/IVFFlat (move similarity into Postgres)
+- [ ] **Streaming** answers (SSE / WebSockets)
+- [ ] **Plan enforcement** (document / query limits from Stripe status)
+- [ ] Org **RBAC** (members, roles, shared workspaces)
+- [ ] Rate limiting + usage metering
+- [ ] OCR / more formats (scanned PDF, PPTX, HTML)
+- [ ] Object storage (S3) instead of local disk
+- [ ] Eval harness for retrieval + answer quality
 
 ---
 
-## Notes
-- Backend details: `backend/README.md`
-- Frontend details: `frontend/README.md`
+## License
+
+[MIT](LICENSE) © 2026 Samuel Hailemariam Seifu
+
+---
+
+## Links
+
+- Backend notes: [`backend/README.md`](backend/README.md)
+- Frontend notes: [`frontend/README.md`](frontend/README.md)
+- Hire / custom RAG & SaaS builds — open an issue or reach out via GitHub profile

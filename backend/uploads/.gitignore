@@ -1,0 +1,3 @@
+# Keep the uploads directory in the tree without committing user files.
+*
+!.gitkeep
