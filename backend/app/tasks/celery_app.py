@@ -2,28 +2,33 @@ from __future__ import annotations
 
 import sys
 
-from celery import Celery
+try:
+    from celery import Celery
+except ImportError:  # pragma: no cover - optional on Vercel slim installs
+    Celery = None  # type: ignore[misc, assignment]
 
 from app.core.config import settings
 
-celery_app = Celery(
-    "documind",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
-)
+if Celery is None:
+    celery_app = None
+else:
+    celery_app = Celery(
+        "documind",
+        broker=settings.redis_url,
+        backend=settings.redis_url,
+    )
 
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-)
-# On Windows the default prefork pool causes PermissionError with billiard semaphores; use solo.
-if sys.platform == "win32":
-    celery_app.conf.worker_pool = "solo"
+    celery_app.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="UTC",
+        enable_utc=True,
+    )
 
-# Ensure tasks are always registered (containers + autodiscovery can be finicky)
-celery_app.conf.imports = ("app.tasks.document_tasks",)
-celery_app.autodiscover_tasks(["app.tasks"])
+    # Windows: prefer solo pool (avoids billiard PermissionError with the default prefork pool).
+    if sys.platform.startswith("win"):
+        celery_app.conf.worker_pool = "solo"
 
+    celery_app.conf.imports = ("app.tasks.document_tasks",)
+    celery_app.autodiscover_tasks(["app.tasks"])

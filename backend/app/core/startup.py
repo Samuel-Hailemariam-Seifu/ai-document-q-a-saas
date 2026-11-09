@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from sqlalchemy.engine import Engine
 
@@ -14,6 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 def run_startup_checks(engine: Engine) -> None:
+    # On Vercel Hobby, FastEmbed is omitted from the bundle — OpenAI embeddings are required.
+    if os.environ.get("VERCEL") and not settings.openai_api_key:
+        logger.error(
+            "OPENAI_API_KEY is required on Vercel (FastEmbed exceeds Hobby function size). "
+            "Add OPENAI_API_KEY and set EMBEDDING_DIM=1536 to match text-embedding-3-small "
+            "(and migrate/re-embed if the column is still vector(384))."
+        )
+
     validate_embedding_config()
 
     info = probe_pgvector(engine)

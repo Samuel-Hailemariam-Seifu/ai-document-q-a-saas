@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from fastembed import TextEmbedding
 from openai import OpenAI
 
 from app.core.config import settings
@@ -57,8 +56,15 @@ def validate_embedding_config() -> None:
 
 
 @lru_cache(maxsize=1)
-def _local_embedder() -> TextEmbedding:
-    # FastEmbed downloads an ONNX model on first use.
+def _local_embedder():
+    # FastEmbed downloads an ONNX model on first use (local/dev). Too large for Vercel Hobby bundles.
+    try:
+        from fastembed import TextEmbedding
+    except ImportError as exc:  # pragma: no cover
+        raise EmbeddingConfigError(
+            "FastEmbed is not installed. Set OPENAI_API_KEY for embeddings "
+            "(required on Vercel), or install fastembed for local/dev."
+        ) from exc
     return TextEmbedding(model_name=settings.local_embedding_model)
 
 

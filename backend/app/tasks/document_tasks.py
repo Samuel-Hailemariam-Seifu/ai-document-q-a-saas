@@ -15,13 +15,12 @@ from app.services.embeddings_service import (
 )
 from app.services.retrieval_service import assert_workspace_embedding_compatible
 from app.services.storage_service import resolve_path
-from app.tasks.celery_app import celery_app
 from app.utils.chunking import chunk_pages
 from app.utils.text_extraction import extract_text
 
 
-@celery_app.task(name="ingest_document")
 def ingest_document(document_id: int) -> None:
+    """Ingest a document (callable directly, or via Celery when registered)."""
     db: Session = SessionLocal()
     try:
         doc = db.get(Document, document_id)
@@ -101,3 +100,13 @@ def ingest_document(document_id: int) -> None:
         raise
     finally:
         db.close()
+
+
+# Register with Celery when the optional worker stack is installed.
+try:
+    from app.tasks.celery_app import celery_app as _celery_app
+
+    if _celery_app is not None:
+        ingest_document = _celery_app.task(name="ingest_document")(ingest_document)  # type: ignore[misc]
+except Exception:  # pragma: no cover
+    pass

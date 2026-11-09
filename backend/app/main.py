@@ -20,11 +20,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # On Vercel, don't hard-crash the whole function if DB/embeddings aren't ready yet —
+    # /health still answers so deploy + env debugging stays possible.
     try:
         run_startup_checks(engine)
     except Exception:
-        logger.exception("Startup checks failed")
-        raise
+        logger.exception("Startup checks failed (API will start; DB-backed routes may error)")
     yield
 
 

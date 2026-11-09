@@ -15,10 +15,25 @@ from app.services.document_service import (
     list_documents,
 )
 from app.core.config import settings
-from app.tasks.document_tasks import ingest_document
 from app.services.workspace_service import get_workspace
 
 router = APIRouter(tags=["documents"])
+
+
+def _enqueue_ingest(document_id: int) -> None:
+    """Run ingest inline on Vercel; otherwise enqueue via Celery when available."""
+    from app.tasks.document_tasks import ingest_document
+
+    if settings.run_ingest_inline:
+        # Celery Task.__call__ still runs locally; .run is explicit for Task wrappers.
+        run = getattr(ingest_document, "run", ingest_document)
+        run(document_id)
+        return
+    delay = getattr(ingest_document, "delay", None)
+    if callable(delay):
+        delay(document_id)
+        return
+    ingest_document(document_id)
 
 
 @router.get("/api/workspaces/{workspace_id}/documents", response_model=list[DocumentListOut])
@@ -71,11 +86,8 @@ async def upload_document(
             status_code=400,
             detail="Invalid file type or size. Allowed: PDF, TXT, DOCX; max 25MB.",
         )
-    if settings.run_ingest_inline:
-        ingest_document(doc.id)
-        db.refresh(doc)
-    else:
-        ingest_document.delay(doc.id)
+    _enqueue_ingest(doc.id)
+    db.refresh(doc)
     return DocumentOut(
         id=doc.id,
         workspace_id=doc.workspace_id,
@@ -149,11 +161,8 @@ def reprocess_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
-    if settings.run_ingest_inline:
-        ingest_document(doc.id)
-        db.refresh(doc)
-    else:
-        ingest_document.delay(doc.id)
+    _enqueue_ingest(doc.id)
+    db.refresh(doc)
     return DocumentOut(
         id=doc.id,
         workspace_id=doc.workspace_id,
