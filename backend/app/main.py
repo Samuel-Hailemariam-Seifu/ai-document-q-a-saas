@@ -10,8 +10,10 @@ _BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.billing import router as billing_router
@@ -56,6 +58,24 @@ def create_app() -> FastAPI:
     app.include_router(documents_router)
     app.include_router(chat_router)
     app.include_router(billing_router)
+
+    @app.exception_handler(OperationalError)
+    async def db_operational_error(_request: Request, exc: OperationalError):
+        logger.exception("Database connection failed: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": (
+                    "Database unavailable. Check DATABASE_URL on Vercel — "
+                    "URL-encode password special characters (@→%40, $→%24, !→%21)."
+                )
+            },
+        )
+
+    @app.exception_handler(SQLAlchemyError)
+    async def db_error(_request: Request, exc: SQLAlchemyError):
+        logger.exception("Database error: %s", exc)
+        return JSONResponse(status_code=503, content={"detail": "Database error"})
 
     @app.get("/health")
     def health():
