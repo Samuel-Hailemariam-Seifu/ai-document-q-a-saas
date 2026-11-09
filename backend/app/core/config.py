@@ -99,7 +99,26 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
+        origins = [o.strip().rstrip("/") for o in self.backend_cors_origins.split(",") if o.strip()]
+        fe = (self.frontend_base_url or "").strip().rstrip("/")
+        if fe and fe not in origins:
+            origins.append(fe)
+        # Always allow the production frontend alias used on Vercel
+        for extra in (
+            "https://documind-ai-chi-weld.vercel.app",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ):
+            if extra not in origins:
+                origins.append(extra)
+        return origins
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        # Allow any *.vercel.app preview/production frontend when deployed on Vercel
+        if _on_vercel():
+            return r"https://.*\.vercel\.app"
+        return None
 
     @property
     def retrieval_candidate_n(self) -> int:
