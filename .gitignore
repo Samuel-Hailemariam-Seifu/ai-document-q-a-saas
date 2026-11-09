@@ -54,3 +54,7 @@ frontend/**/*.pyc
 *.njsproj
 *.sln
 *.sw?
+
+.env.prod
+
+.vercel

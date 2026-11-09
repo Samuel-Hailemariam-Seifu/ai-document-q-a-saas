@@ -1,0 +1,119 @@
+# Production-style stack: UI + API on http://localhost (port 80)
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file backend/.env up --build -d
+#
+# Required in env (or backend/.env): GROQ_API_KEY (or OPENAI_API_KEY)
+# Override JWT_SECRET before any shared/public host.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: documind
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - prod_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d documind"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - prod_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/documind
+      JWT_SECRET: ${JWT_SECRET:-change_me_before_public_deploy}
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "14"
+      BACKEND_CORS_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      STORAGE_PATH: /data/uploads
+      REDIS_URL: redis://redis:6379/0
+      RUN_INGEST_INLINE: "false"
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-20b}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+      LOCAL_EMBEDDING_MODEL: ${LOCAL_EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_PRO_MONTHLY: ${STRIPE_PRICE_PRO_MONTHLY:-}
+      STRIPE_SUCCESS_URL: ${PUBLIC_ORIGIN:-http://localhost}/app/billing?status=success
+      STRIPE_CANCEL_URL: ${PUBLIC_ORIGIN:-http://localhost}/app/billing?status=cancel
+      FRONTEND_BASE_URL: ${PUBLIC_ORIGIN:-http://localhost}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-DocuMind <onboarding@resend.dev>}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-false}
+    volumes:
+      - prod_uploads:/data/uploads
+      - prod_fastembed:/root/.cache
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/documind
+      STORAGE_PATH: /data/uploads
+      REDIS_URL: redis://redis:6379/0
+      RUN_INGEST_INLINE: "false"
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-20b}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+      LOCAL_EMBEDDING_MODEL: ${LOCAL_EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-change_me_before_public_deploy}
+    volumes:
+      - prod_uploads:/data/uploads
+      - prod_fastembed:/root/.cache
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: ""
+    ports:
+      - "${HOST_PORT:-80}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  prod_db_data:
+  prod_redis_data:
+  prod_uploads:
+  prod_fastembed:

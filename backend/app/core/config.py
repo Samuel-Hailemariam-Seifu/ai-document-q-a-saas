@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _on_vercel() -> bool:
+    return bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"))
 
 # Prisma/Supabase URL params that libpq/psycopg do not accept.
 _NON_LIBPQ_QUERY_KEYS = frozenset({"pgbouncer", "schema"})
@@ -54,9 +60,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 14
     backend_cors_origins: str = "http://localhost:5173"
-    storage_path: str = "uploads"
+    # On Vercel the filesystem is ephemeral — default to /tmp and ingest inline (no Celery).
+    storage_path: str = "/tmp/documind-uploads" if _on_vercel() else "uploads"
     redis_url: str = "redis://localhost:6379/0"
-    run_ingest_inline: bool = False  # if True, run document ingestion in-process (no Redis/Celery needed)
+    run_ingest_inline: bool = True if _on_vercel() else False
     openai_api_key: str = ""
     groq_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
