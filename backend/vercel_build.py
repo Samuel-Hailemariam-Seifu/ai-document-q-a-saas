@@ -5,6 +5,9 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent
 
 
 def main() -> int:
@@ -16,15 +19,22 @@ def main() -> int:
     if "…" in url or "xxxx" in url or "PASSWORD" in url:
         print("Skipping migrations: DATABASE_URL looks like a placeholder")
         return 0
-    print("Running alembic upgrade head…")
+
+    env = os.environ.copy()
+    # Ensure `import app` works during Alembic
+    env["PYTHONPATH"] = str(BACKEND_DIR) + os.pathsep + env.get("PYTHONPATH", "")
+
+    print(f"Running alembic upgrade head (cwd={BACKEND_DIR})…")
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "-c", "alembic.ini", "upgrade", "head"],
+        cwd=BACKEND_DIR,
+        env=env,
         check=False,
     )
     if result.returncode != 0:
         print(
-            "Alembic failed — ensure DIRECT_URL is session-mode Postgres, "
-            "pgvector is enabled, and credentials are correct."
+            "Alembic failed — ensure DIRECT_URL is session-mode Postgres (port 5432), "
+            "pgvector is enabled (CREATE EXTENSION vector), and credentials are correct."
         )
         # Prefer a deployable API over a hard build fail; fix DB then redeploy.
         if os.environ.get("VERCEL_MIGRATE_STRICT", "").lower() in {"1", "true", "yes"}:
