@@ -60,3 +60,5 @@ frontend/**/*.pyc
 .vercel
 
 .env.vercel
+.vercel
+.env*

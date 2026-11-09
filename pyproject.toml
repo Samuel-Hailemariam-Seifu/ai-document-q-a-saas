@@ -1,0 +1,6 @@
+# Used when the Vercel project Root Directory is the repo root (documind-api).
+[tool.vercel]
+entrypoint = "backend.app.main:app"
+
+[tool.vercel.scripts]
+build = "python backend/vercel_build.py"
