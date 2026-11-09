@@ -1,6 +1,9 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  BadgeCheck,
   Bell,
   Bot,
   BookOpen,
@@ -10,11 +13,15 @@ import {
   ChevronDown,
   ChevronRight,
   Cloud,
+  Copy,
   CreditCard,
   Crown,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   Folder,
+  FolderOpen,
   History,
   Hourglass,
   Info,
@@ -27,15 +34,20 @@ import {
   Mail,
   Menu,
   MessageCircle,
+  MessageSquareQuote,
   Monitor,
   Moon,
+  PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRight,
   PanelRightClose,
   PanelRightOpen,
   Paperclip,
+  Pencil,
   PlayCircle,
   Plus,
+  Quote,
   RefreshCw,
   Search,
   Send,
@@ -43,6 +55,8 @@ import {
   Shield,
   Sparkles,
   Sun,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
   TrendingUp,
   Upload,
@@ -91,6 +105,8 @@ export type IconName =
   | 'chevronDown'
   | 'chevronRight'
   | 'panelClose'
+  | 'panelLeft'
+  | 'panelRight'
   | 'panelOpen'
   | 'checkMark'
   | 'logout'
@@ -108,6 +124,18 @@ export type IconName =
   | 'alert'
   | 'layers'
   | 'lightbulb'
+  | 'eye'
+  | 'eyeOff'
+  | 'arrowRight'
+  | 'arrowUp'
+  | 'quote'
+  | 'badgeCheck'
+  | 'folderOpen'
+  | 'messageQuote'
+  | 'copy'
+  | 'thumbsUp'
+  | 'thumbsDown'
+  | 'pencil'
 
 const ICONS: Record<IconName, LucideIcon> = {
   sparkles: Sparkles,
@@ -146,6 +174,8 @@ const ICONS: Record<IconName, LucideIcon> = {
   chevronDown: ChevronDown,
   chevronRight: ChevronRight,
   panelClose: PanelLeftClose,
+  panelLeft: PanelLeft,
+  panelRight: PanelRight,
   panelOpen: PanelLeftOpen,
   checkMark: Check,
   logout: LogOut,
@@ -163,6 +193,18 @@ const ICONS: Record<IconName, LucideIcon> = {
   alert: AlertTriangle,
   layers: Layers,
   lightbulb: Lightbulb,
+  eye: Eye,
+  eyeOff: EyeOff,
+  arrowRight: ArrowRight,
+  arrowUp: ArrowUp,
+  quote: Quote,
+  badgeCheck: BadgeCheck,
+  folderOpen: FolderOpen,
+  messageQuote: MessageSquareQuote,
+  copy: Copy,
+  thumbsUp: ThumbsUp,
+  thumbsDown: ThumbsDown,
+  pencil: Pencil,
 }
 
 type Props = {

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Icon } from './Icon'
 
 type ConfirmDialogProps = {
   open: boolean
@@ -32,7 +33,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm"
+      className="saas-overlay"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -40,13 +41,20 @@ export function ConfirmDialog({
         if (e.target === e.currentTarget) onCancel()
       }}
     >
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-surface-dark">
-        <p className="saas-section-title">{title}</p>
-        {description ? (
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{description}</p>
-        ) : null}
+      <div className="saas-dialog max-w-md">
+        <div className="flex gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+            <Icon name="alert" size={18} />
+          </span>
+          <div className="min-w-0 pt-1">
+            <p className="text-base font-semibold tracking-tight text-content">{title}</p>
+            {description ? (
+              <p className="mt-1.5 text-sm leading-relaxed text-content-muted">{description}</p>
+            ) : null}
+          </div>
+        </div>
 
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" className="saas-btn saas-btn-secondary" onClick={onCancel}>
             {cancelLabel}
           </button>

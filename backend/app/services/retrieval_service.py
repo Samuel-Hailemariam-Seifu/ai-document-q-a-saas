@@ -189,8 +189,9 @@ def top_k_chunks_for_workspace_legacy(
 def _apply_hnsw_session_settings(db: Session, *, limit: int) -> None:
     """SET LOCAL must run in the same transaction as the vector ORDER BY query."""
     info = get_pgvector_info()
-    ef = max(int(settings.hnsw_ef_search), int(limit))
-    db.execute(text("SET LOCAL hnsw.ef_search = :ef"), {"ef": ef})
+    # Postgres SET does not accept bind parameters — interpolate validated ints only.
+    ef = max(int(settings.hnsw_ef_search), int(limit), 1)
+    db.execute(text(f"SET LOCAL hnsw.ef_search = {ef}"))
     if info is not None and info.supports_iterative_scan:
         db.execute(text("SET LOCAL hnsw.iterative_scan = 'relaxed_order'"))
 
@@ -216,7 +217,7 @@ def _vector_top_n(
     )
     params = {
         **params,
-        "qvec": str(query_embedding),
+        "qvec": "[" + ",".join(str(float(x)) for x in query_embedding) + "]",
         "lim": fetch_n,
     }
 

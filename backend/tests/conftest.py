@@ -18,8 +18,8 @@ _TEST_DB = "documind_test"
 _DEFAULT_URL = f"postgresql+psycopg://postgres:postgres@localhost:5432/{_TEST_DB}"
 
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", _DEFAULT_URL)
-os.environ.setdefault("OPENAI_API_KEY", "sk-test-not-real")
-os.environ.setdefault("EMBEDDING_DIM", "1536")
+os.environ["OPENAI_API_KEY"] = ""
+os.environ.setdefault("EMBEDDING_DIM", "384")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("KEYWORD_BACKEND", "postgres")
 
@@ -77,7 +77,7 @@ def _run_migrations(db_url: str) -> None:
     command.upgrade(cfg, "head")
 
 
-def _hash_embed(texts: list[str], dim: int = 1536) -> list[list[float]]:
+def _hash_embed(texts: list[str], dim: int = 384) -> list[list[float]]:
     """Deterministic bag-of-words embedding into `dim` (no external API)."""
     out: list[list[float]] = []
     for text_value in texts:
@@ -135,11 +135,17 @@ def db(engine) -> Generator[Session, None, None]:
 
 @pytest.fixture(autouse=True)
 def _fake_embeddings(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-real")
+    """Deterministic 384-d embeddings — never call external APIs in tests."""
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     from app.core import config as config_mod
     from app.services import embeddings_service as emb_mod
+    from app.services import retrieval_service as ret_mod
 
-    monkeypatch.setattr(config_mod.settings, "openai_api_key", "sk-test-not-real")
-    monkeypatch.setattr(config_mod.settings, "embedding_dim", 1536)
+    def _model() -> str:
+        return "BAAI/bge-small-en-v1.5"
+
+    monkeypatch.setattr(config_mod.settings, "openai_api_key", "")
+    monkeypatch.setattr(config_mod.settings, "embedding_dim", 384)
     monkeypatch.setattr(emb_mod, "embed_texts", _hash_embed)
-    monkeypatch.setattr(emb_mod, "configured_embedding_model", lambda: "text-embedding-3-small")
+    monkeypatch.setattr(emb_mod, "configured_embedding_model", _model)
+    monkeypatch.setattr(ret_mod, "configured_embedding_model", _model)

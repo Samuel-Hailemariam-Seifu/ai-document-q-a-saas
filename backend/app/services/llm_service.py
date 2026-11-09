@@ -47,7 +47,7 @@ def generate_answer(*, question: str, context_blocks: list[str]) -> str:
             base_url="https://api.groq.com/openai/v1",
             default_headers=default_headers,
         )
-        model = settings.llm_model or "llama-3.1-8b-instant"
+        model = settings.llm_model or "openai/gpt-oss-20b"
     elif settings.openai_api_key:
         client = OpenAI(api_key=settings.openai_api_key, default_headers=default_headers)
         model = "gpt-4o-mini"

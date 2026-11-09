@@ -17,7 +17,11 @@ function readInitialTheme(): ThemePreference {
   } catch {
     // ignore
   }
-  return 'dark'
+  try {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
 }
 
 function nextTheme(pref: ThemePreference): ThemePreference {
@@ -44,11 +48,11 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setPref((p) => nextTheme(p))}
-      className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+      className="saas-icon-btn"
       aria-label={`Theme: ${label}. Click to change.`}
       title={`Theme: ${label} (click to change)`}
     >
-      <Icon name={pref === 'light' ? 'sun' : 'moon'} size={18} />
+      <Icon name={pref === 'light' ? 'sun' : 'moon'} size={16} />
     </button>
   )
 }

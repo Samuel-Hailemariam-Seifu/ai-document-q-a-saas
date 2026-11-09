@@ -11,9 +11,12 @@ import { DashboardPage } from '../pages/DashboardPage.tsx'
 import { ChatPage } from '../pages/ChatPage.tsx'
 import { DocumentsPage } from '../pages/DocumentsPage.tsx'
 import { DocumentDetailPage } from '../pages/DocumentDetailPage.tsx'
-import { EmptyStatesPage } from '../pages/EmptyStatesPage.tsx'
 import { BillingPage } from '../pages/BillingPage.tsx'
 import { SettingsPage } from '../pages/SettingsPage.tsx'
+import { NotFoundPage } from '../pages/NotFoundPage'
+import { PrivacyPage } from '../pages/PrivacyPage'
+import { TermsPage } from '../pages/TermsPage'
+import { SecurityPage } from '../pages/SecurityPage'
 import { RequireAuth } from '../auth/RequireAuth'
 
 export const router = createBrowserRouter([
@@ -26,6 +29,9 @@ export const router = createBrowserRouter([
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
       { path: '/reset-password', element: <ResetPasswordPage /> },
       { path: '/verify-email', element: <VerifyEmailPage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
+      { path: '/terms', element: <TermsPage /> },
+      { path: '/security', element: <SecurityPage /> },
       {
         path: '/app',
         element: <RequireAuth />,
@@ -40,11 +46,11 @@ export const router = createBrowserRouter([
               { path: 'billing', element: <BillingPage /> },
               { path: 'settings', element: <SettingsPage /> },
               { path: 'documents/:documentId', element: <DocumentDetailPage /> },
-              { path: 'empty', element: <EmptyStatesPage /> },
             ],
           },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

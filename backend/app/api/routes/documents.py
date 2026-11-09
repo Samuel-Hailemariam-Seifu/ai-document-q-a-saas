@@ -39,6 +39,7 @@ def list_workspace_documents(
             file_size=d.file_size,
             status=d.status,
             chunk_count=d.chunk_count,
+            error_message=d.error_message,
             created_at=d.created_at,
         )
         for d in items
@@ -127,6 +128,46 @@ def get_document_chunks(
         ChunkOut(id=c.id, document_id=c.document_id, chunk_index=c.chunk_index, page_number=c.page_number, content=c.content)
         for c in chunks
     ]
+
+
+@router.post("/api/documents/{document_id}/reprocess", response_model=DocumentOut)
+def reprocess_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    doc = get_document(db, document_id=document_id, owner_id=current_user.id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.status not in ("failed", "pending"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only failed or pending documents can be reprocessed.",
+        )
+    doc.status = "pending"
+    doc.error_message = None
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    if settings.run_ingest_inline:
+        ingest_document(doc.id)
+        db.refresh(doc)
+    else:
+        ingest_document.delay(doc.id)
+    return DocumentOut(
+        id=doc.id,
+        workspace_id=doc.workspace_id,
+        filename=doc.filename,
+        original_name=doc.original_name,
+        file_path=doc.file_path,
+        mime_type=doc.mime_type,
+        file_size=doc.file_size,
+        status=doc.status,
+        page_count=doc.page_count,
+        chunk_count=doc.chunk_count,
+        error_message=doc.error_message,
+        created_at=doc.created_at,
+    )
 
 
 @router.delete("/api/documents/{document_id}", status_code=204)

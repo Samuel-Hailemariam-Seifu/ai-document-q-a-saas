@@ -229,8 +229,8 @@ erDiagram
 | **Frontend** | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4, Lucide icons |
 | **Backend** | FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, Celery, Redis |
 | **Database** | PostgreSQL 16 + **pgvector** (psycopg3) |
-| **Embeddings** | OpenAI `text-embedding-3-small` (1536-d, default column) · local FastEmbed only after dim/model alignment + re-embed |
-| **LLM** | Groq (`llama-3.1-8b-instant`) preferred · else OpenAI (`gpt-4o-mini`) |
+| **Embeddings** | Local FastEmbed `BAAI/bge-small-en-v1.5` (384-d, default) · optional OpenAI `text-embedding-3-small` |
+| **LLM** | Groq (`openai/gpt-oss-20b`) preferred · else OpenAI (`gpt-4o-mini`) |
 | **Retrieval** | pgvector HNSW + Postgres FTS (or BM25) + RRF (+ neighbor window) |
 | **Billing** | Stripe Checkout / Portal / webhooks |
 | **Email** | Resend (optional) |
@@ -281,8 +281,9 @@ ai-document-q-a-saas/
 ### Postgres / pgvector notes
 - **Docker Compose** uses `pgvector/pgvector:pg16`. If you previously ran plain `postgres:16`, recreate the DB volume so the extension image is used (`docker compose down -v` then `up --build`) — only do this if you can wipe local data.
 - **Supabase:** the migration runs `CREATE EXTENSION IF NOT EXISTS vector`. If your DB role cannot create extensions, enable **vector** in the Supabase dashboard (Database → Extensions), then re-run `alembic upgrade head`.
-- The Alembic migration adds `embedding_vec vector(1536)`, backfills from the legacy `float[]` column, and **keeps** `embedding` for verification. A later migration (not shipped here) will drop the old column after you review `scripts/compare_retrieval.py`.
-- **One embedding model per workspace.** Mixing OpenAI (1536) and FastEmbed (384) in the same workspace is rejected at ingest and query time. Switch models with `python -m scripts.reembed --workspace-id …`.
+- The Alembic migration adds `embedding_vec` (default **`vector(384)`** for local FastEmbed), backfills when dimensions match, and **keeps** legacy `embedding` for verification. A later migration (not shipped here) will drop the old column after you review `scripts/compare_retrieval.py`.
+- **Typical no-OpenAI setup:** `GROQ_API_KEY` for the LLM + local FastEmbed for vectors. (Groq embedding models are not available on all Groq accounts.)
+- **One embedding model per workspace.** Mixing models/dims in the same workspace is rejected at ingest and query time. Switch models with `python -m scripts.reembed --workspace-id …`.
 - **HNSW trade-off:** approximate nearest neighbor is much faster than a full scan, but can occasionally miss the exact best match. Raise `HNSW_EF_SEARCH` for higher recall.
 
 ### 1) Backend
@@ -364,11 +365,12 @@ docker compose up --build
 | `RUN_INGEST_INLINE` | `true` = ingest in API process (best for Windows / no Redis) |
 | `REDIS_URL` | Celery broker when not inline |
 | `GROQ_API_KEY` | Preferred LLM |
-| `OPENAI_API_KEY` | OpenAI embeddings (required for default 1536-d column) and/or LLM fallback |
+| `GROQ_API_KEY` | LLM (chat answers) |
+| `OPENAI_API_KEY` | Optional OpenAI embeddings / LLM fallback |
 | `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
-| `EMBEDDING_DIM` | Must match DB `vector(N)` and the active model (default `1536`) |
-| `LOCAL_EMBEDDING_MODEL` | Default `BAAI/bge-small-en-v1.5` (384-d — not compatible with default column without re-migrate) |
-| `LLM_MODEL` | Groq default `llama-3.1-8b-instant` |
+| `EMBEDDING_DIM` | Must match DB `vector(N)` and the active model (default `384`) |
+| `LOCAL_EMBEDDING_MODEL` | Default FastEmbed model when no OpenAI key (`BAAI/bge-small-en-v1.5`) |
+| `LLM_MODEL` | Groq default `openai/gpt-oss-20b` |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking |
 | `RETRIEVAL_TOP_K` / `RETRIEVAL_NEIGHBOR_WINDOW` | Retrieval |
 | `KEYWORD_BACKEND` | `postgres` (default, `ts_rank_cd`) or `bm25` (legacy Python) |

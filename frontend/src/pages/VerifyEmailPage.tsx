@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { verifyEmail } from '../services/auth'
+import { AuthShell } from '../components/auth/AuthShell'
+import { Icon } from '../components/common/Icon'
 
 function msg(err: unknown): string {
   if (err && typeof err === 'object' && 'message' in err) return String((err as { message?: unknown }).message ?? '')
@@ -36,30 +38,36 @@ export function VerifyEmailPage() {
   }, [token, hasToken])
 
   return (
-    <div className="min-h-screen bg-background-light p-4 font-display text-slate-900 dark:bg-background-dark dark:text-slate-100 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-800">
-        <h1 className="text-xl font-semibold">Verify email</h1>
-        {!hasToken ? (
-          <p className="mt-4 text-sm text-rose-600">Missing or invalid verification token.</p>
-        ) : state === 'verifying' ? (
-          <p className="mt-4 text-sm text-slate-500">Verifying…</p>
-        ) : state === 'ok' ? (
-          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
-            Email verified. You can now log in.
-          </div>
-        ) : state === 'error' ? (
-          <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
-            {error ?? 'Verification failed'}
-          </div>
-        ) : null}
-
-        <div className="mt-6 text-sm text-slate-600 dark:text-slate-400">
-          <Link to="/login" className="font-semibold text-primary hover:underline">
-            Go to login
-          </Link>
+    <AuthShell
+      title="Verify email"
+      subtitle="Confirm your address to finish setup"
+      footer={
+        <Link to="/login" className="saas-link">
+          Go to login
+        </Link>
+      }
+    >
+      {!hasToken ? (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
+          Missing or invalid verification token.
         </div>
-      </div>
-    </div>
+      ) : state === 'verifying' ? (
+        <p className="flex items-center gap-2 text-sm text-content-muted">
+          <Icon name="hourglass" size={16} className="animate-spin" />
+          Verifying…
+        </p>
+      ) : state === 'ok' ? (
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <Icon name="check" size={16} className="mt-0.5 shrink-0" />
+          Email verified. You can now log in.
+        </div>
+      ) : state === 'error' ? (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
+          {error ?? 'Verification failed'}
+        </div>
+      ) : null}
+    </AuthShell>
   )
 }
-

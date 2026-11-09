@@ -1,5 +1,11 @@
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-primary) 14%, transparent) transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -7,11 +13,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(59, 43, 238, 0.1);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 43, 238, 0.3);
+  background-color: color-mix(in srgb, var(--text-primary) 26%, transparent);
 }
-

@@ -10,6 +10,7 @@ from app.core.config import settings
 # Known output dimensions for configured models.
 _MODEL_DIMS: dict[str, int] = {
     "text-embedding-3-small": 1536,
+    "nomic-embed-text-v1.5": 768,
     "BAAI/bge-small-en-v1.5": 384,
 }
 
@@ -23,7 +24,16 @@ class EmbeddingConfigError(RuntimeError):
 
 
 def configured_embedding_model() -> str:
-    """Active embedding model from env — no silent cross-provider fallback mid-workspace."""
+    """
+    Active embedding model from env — no silent cross-provider fallback mid-workspace.
+
+    Priority:
+      1) OpenAI when OPENAI_API_KEY is set
+      2) Local FastEmbed otherwise (works with GROQ_API_KEY for LLM-only setups)
+
+    Note: Groq chat keys do not currently expose an embedding model on all accounts;
+    DocuMind therefore uses FastEmbed for vectors unless OpenAI is configured.
+    """
     if settings.openai_api_key:
         return settings.openai_embedding_model
     return settings.local_embedding_model
@@ -42,10 +52,8 @@ def validate_embedding_config() -> None:
             f"{model!r} (expected {expected}). Set EMBEDDING_DIM={expected} or change the model, "
             f"then re-embed workspaces that used a different model."
         )
-    if expected is None:
-        # Unknown model name — still require a positive dim; warn via exception only if dim <= 0.
-        if settings.embedding_dim <= 0:
-            raise EmbeddingConfigError("EMBEDDING_DIM must be a positive integer")
+    if expected is None and settings.embedding_dim <= 0:
+        raise EmbeddingConfigError("EMBEDDING_DIM must be a positive integer")
 
 
 @lru_cache(maxsize=1)
@@ -62,7 +70,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         vectors = [d.embedding for d in resp.data]
     else:
         embedder = _local_embedder()
-        vectors = [list(vec) for vec in embedder.embed(texts)]
+        vectors = [[float(x) for x in vec] for vec in embedder.embed(texts)]
 
     for i, vec in enumerate(vectors):
         if len(vec) != settings.embedding_dim:
@@ -70,4 +78,5 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
                 f"Embedding from {model!r} has dim {len(vec)} but EMBEDDING_DIM="
                 f"{settings.embedding_dim} (text index {i})"
             )
+        vectors[i] = [float(x) for x in vec]
     return vectors

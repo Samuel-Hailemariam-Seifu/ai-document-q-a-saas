@@ -11,114 +11,483 @@ body {
   margin: 0;
 }
 
+/* ---------------------------------------------------------------------------
+ * Design tokens
+ * Neutral zinc surfaces, one teal accent, hairline borders, layered shadows.
+ * ------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --surface-canvas: #f6f6f7;
+  --surface-solid: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-muted: #f4f4f5;
+  --surface-hover: rgba(24, 24, 27, 0.045);
+  --surface-inverse: #18181b;
+  --border-subtle: #e6e6e9;
+  --border-strong: #d4d4d8;
+  --glow-teal: rgba(13, 148, 136, 0.10);
+
+  /* Text */
+  --text-primary: #18181b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
+  --text-inverse: #fafafa;
+
+  /* Brand / status */
+  --accent: #0d9488;
+  --accent-strong: #0f766e;
+  --accent-text: #0f766e;
+  --accent-soft: rgba(13, 148, 136, 0.09);
+  --accent-foreground: #ffffff;
+  --danger: #e11d48;
+  --warning: #d97706;
+  --success: #059669;
+
+  /* Effects */
+  --shadow-soft: 0 1px 2px rgba(24, 24, 27, 0.04), 0 1px 1px rgba(24, 24, 27, 0.02);
+  --shadow-raised: 0 0 0 1px rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.06),
+    0 4px 12px -2px rgba(24, 24, 27, 0.05);
+  --shadow-overlay: 0 0 0 1px rgba(24, 24, 27, 0.06), 0 8px 16px -4px rgba(24, 24, 27, 0.08),
+    0 24px 48px -12px rgba(24, 24, 27, 0.18);
+  --btn-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --btn-primary-bg: #0f766e;
+  --btn-primary-fg: #ffffff;
+  --ring-focus: 0 0 0 2px var(--surface-solid), 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --surface-canvas: #09090b;
+  --surface-solid: #111113;
+  --surface-glass: rgba(17, 17, 19, 0.78);
+  --surface-muted: #18181b;
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --surface-inverse: #fafafa;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --glow-teal: rgba(45, 212, 191, 0.07);
+
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+  --text-inverse: #18181b;
+
+  --accent: #14b8a6;
+  --accent-strong: #2dd4bf;
+  --accent-text: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.12);
+  --accent-foreground: #042f2e;
+  --danger: #fb7185;
+  --warning: #fbbf24;
+  --success: #34d399;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 8px 24px -6px rgba(0, 0, 0, 0.5);
+  --shadow-overlay: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px -8px rgba(0, 0, 0, 0.7);
+  --btn-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --btn-primary-bg: #0d9488;
+  --btn-primary-fg: #ffffff;
+  --ring-focus: 0 0 0 2px var(--surface-solid), 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
 @layer base {
   body {
     margin: 0;
-    background: #f8fafc;
-    color: #0f172a;
-    font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
+    background: var(--surface-canvas);
+    color: var(--text-primary);
+    font-family: Geist, Inter, system-ui, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  .dark body {
-    background: #0f172a;
-    color: #f8fafc;
-  }
-
-  /* Material Symbols (Google Fonts) */
-  .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
-    font-style: normal;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: 'liga';
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    box-shadow: var(--ring-focus);
   }
 }
 
 @layer utilities {
   .bg-background-light {
-    background: #f8fafc;
+    background: var(--surface-canvas);
   }
 
   .dark .dark\:bg-background-dark {
-    background: #0f172a;
+    background: var(--surface-canvas);
+  }
+
+  .app-canvas {
+    background-color: var(--surface-canvas);
+  }
+
+  /* Faint dotted grid used on marketing and auth backgrounds. */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--text-primary) 9%, transparent) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+
+  .bg-hero-glow {
+    background-image: radial-gradient(ellipse 60% 50% at 50% 0%, var(--glow-teal), transparent 70%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer components {
-  /* Surfaces */
+  /* ---------------------------------------------------------------- Surfaces */
   .saas-card {
-    @apply rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-surface-dark;
+    @apply rounded-xl border border-subtle bg-surface-solid shadow-soft;
   }
 
   .saas-card-muted {
-    @apply rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-white/5;
+    @apply rounded-xl border border-subtle bg-surface-muted;
   }
 
-  /* Typography scale: display levels use the heading face, UI text uses Inter.
+  .saas-surface-solid {
+    @apply rounded-xl border border-subtle bg-surface-solid shadow-soft;
+  }
+
+  .saas-glass {
+    @apply border border-subtle bg-surface-glass backdrop-blur-xl;
+  }
+
+  /* Card section header: title on the left, actions on the right. */
+  .saas-card-header {
+    @apply flex min-h-14 items-center justify-between gap-3 border-b border-subtle px-5 py-3;
+  }
+
+  /* Opaque overlays (menus/popovers) — never translucent over page chrome */
+  .saas-menu {
+    @apply animate-pop-in border border-subtle bg-surface-solid shadow-overlay;
+  }
+
+  .saas-menu-item {
+    @apply flex min-h-9 w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-content-secondary transition-colors hover:bg-surface-hover hover:text-content;
+  }
+
+  .saas-overlay {
+    @apply fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-zinc-950/40 p-4 backdrop-blur-[2px];
+  }
+
+  .saas-dialog {
+    @apply w-full animate-pop-in rounded-2xl border border-subtle bg-surface-solid p-6 shadow-overlay;
+  }
+
+  .saas-divider {
+    @apply h-px bg-[var(--border-subtle)];
+  }
+
+  /* -------------------------------------------------------------- Typography
      1 title · 2 stat · 3 section title · 4 body · 5 subtitle/meta · 6 label */
   .saas-title {
-    @apply font-heading text-[22px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 dark:text-white;
+    @apply font-heading text-xl font-semibold leading-tight tracking-[-0.025em] text-content sm:text-[1.625rem];
   }
 
   .saas-stat {
-    @apply font-heading text-[20px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900 dark:text-white;
+    @apply font-heading text-2xl font-semibold leading-none tracking-[-0.03em] tabular-nums text-content;
   }
 
   .saas-section-title {
-    @apply font-heading text-[15px] font-semibold tracking-[-0.01em] text-slate-900 dark:text-white;
+    @apply font-heading text-heading-sm font-semibold tracking-[-0.01em] text-content;
   }
 
   .saas-subtitle {
-    @apply mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400;
+    @apply mt-1 text-sm leading-relaxed text-content-muted;
   }
 
   .saas-meta {
-    @apply text-xs text-slate-500 dark:text-slate-400;
+    @apply text-xs text-content-muted;
   }
 
   .saas-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400;
+    @apply text-2xs font-medium uppercase tracking-[0.08em] text-content-muted;
   }
 
-  /* Forms */
+  .saas-kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-subtle bg-surface-muted px-1 font-mono text-[10px] font-medium text-content-muted;
+  }
+
+  /* ------------------------------------------------------------------- Forms */
+  .saas-field-label {
+    @apply mb-1.5 block text-ui-sm font-medium text-content-secondary;
+  }
+
   .saas-input {
-    @apply h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-background-dark dark:text-slate-100;
+    @apply h-9 w-full rounded-lg border border-strong bg-surface-solid px-3 text-sm text-content shadow-soft outline-none transition-[border-color,box-shadow] placeholder:text-content-faint hover:border-[color-mix(in_srgb,var(--text-muted)_45%,transparent)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)];
   }
 
-  /* Buttons: pair the base `saas-btn` with one variant class. */
+  .saas-input:-webkit-autofill,
+  .saas-input:-webkit-autofill:hover,
+  .saas-input:-webkit-autofill:focus,
+  .saas-input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-primary);
+    caret-color: var(--text-primary);
+    transition: background-color 99999s ease-in-out 0s;
+    box-shadow: 0 0 0 1000px var(--surface-solid) inset;
+    border-color: var(--border-strong);
+  }
+
+  /* ----------------------------------------------------------------- Buttons
+     Pair the base `saas-btn` with one variant class (and optionally a size). */
   .saas-btn {
-    @apply inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-9 shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] active:translate-y-px disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+
+  .saas-btn-sm {
+    @apply h-8 gap-1.5 px-2.5 text-ui-sm;
+  }
+
+  .saas-btn-lg {
+    @apply h-11 px-5 text-[0.9375rem];
+  }
+
+  .saas-btn:disabled,
+  .saas-btn[aria-disabled='true'] {
+    @apply border border-subtle bg-surface-muted text-content-faint opacity-100 shadow-none;
   }
 
   .saas-btn-primary {
-    @apply bg-primary text-white hover:bg-primary/90;
+    @apply bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:brightness-110;
+    box-shadow: var(--btn-highlight), 0 1px 2px rgba(15, 118, 110, 0.35);
+  }
+
+  .saas-btn-primary:disabled,
+  .saas-btn-primary[aria-disabled='true'] {
+    @apply border-transparent bg-surface-muted text-content-faint;
+    box-shadow: none;
+  }
+
+  /* High-contrast neutral CTA (black in light mode, white in dark mode). */
+  .saas-btn-inverse {
+    @apply bg-surface-inverse text-content-inverse hover:opacity-90;
+    box-shadow: var(--btn-highlight), var(--shadow-soft);
   }
 
   .saas-btn-secondary {
-    @apply border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-white/5;
+    @apply border border-strong bg-surface-solid text-content shadow-soft hover:bg-surface-muted;
+  }
+
+  .saas-btn-ghost {
+    @apply text-content-secondary hover:bg-surface-hover hover:text-content;
   }
 
   .saas-btn-danger {
     @apply bg-rose-600 text-white hover:bg-rose-700;
+    box-shadow: var(--btn-highlight), 0 1px 2px rgba(225, 29, 72, 0.3);
+  }
+
+  .saas-btn-danger:disabled,
+  .saas-btn-danger[aria-disabled='true'] {
+    @apply border-transparent bg-surface-muted text-content-faint;
+    box-shadow: none;
   }
 
   .saas-icon-btn {
-    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white;
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-hover hover:text-content disabled:pointer-events-none disabled:opacity-40;
   }
 
+  .saas-link {
+    @apply font-medium text-accent-text underline-offset-4 transition-colors hover:underline;
+  }
+
+  /* ------------------------------------------------------------------ Badges */
   .saas-badge {
-    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border border-transparent px-2 py-0.5 text-xs font-medium;
+  }
+
+  .saas-badge-neutral {
+    @apply border-subtle bg-surface-muted text-content-secondary;
+  }
+
+  .saas-badge-accent {
+    @apply bg-accent-soft text-accent-text;
+  }
+
+  .saas-dot {
+    @apply inline-block size-1.5 shrink-0 rounded-full bg-current;
+  }
+
+  /* ------------------------------------------------------------------ Tables */
+  .saas-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .saas-table thead th {
+    @apply h-10 border-b border-subtle bg-surface-muted/60 px-4 text-xs font-medium text-content-muted first:pl-5 last:pr-5;
+  }
+
+  .saas-table tbody td {
+    @apply h-14 border-b border-subtle px-4 text-content-secondary first:pl-5 last:pr-5;
+  }
+
+  .saas-table tbody tr {
+    @apply transition-colors hover:bg-surface-hover;
+  }
+
+  .saas-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* --------------------------------------------------------------- Misc bits */
+  .saas-icon-tile {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-subtle bg-surface-solid text-content-secondary shadow-soft;
+  }
+
+  .saas-icon-tile-accent {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-text;
+  }
+
+  .saas-progress {
+    @apply h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)];
+  }
+
+  .saas-skeleton {
+    @apply animate-pulse rounded-md bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)];
+  }
+
+  .saas-nav-item {
+    @apply flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-content-secondary transition-colors hover:bg-surface-hover hover:text-content;
+  }
+
+  .saas-nav-item-active {
+    @apply bg-surface-solid text-content shadow-raised hover:bg-surface-solid;
+  }
+
+  .dark .saas-nav-item-active {
+    @apply bg-white/[0.07] shadow-none;
+  }
+
+  /* Touch devices get 44px targets regardless of the dense desktop sizing. */
+  @media (pointer: coarse) {
+    .saas-btn,
+    .saas-input {
+      min-height: 2.75rem;
+    }
+
+    .saas-icon-btn {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+    }
+
+    .saas-nav-item,
+    .saas-menu-item {
+      min-height: 2.75rem;
+    }
+  }
+
+  /* Markdown reading surface (solid, never on blur) */
+  .saas-md {
+    @apply text-sm leading-7 text-content-secondary;
+  }
+
+  .saas-md > :first-child {
+    @apply mt-0;
+  }
+
+  .saas-md > :last-child {
+    @apply mb-0;
+  }
+
+  .saas-md-h1 {
+    @apply font-heading mb-3 mt-5 text-xl font-semibold tracking-tight text-content;
+  }
+
+  .saas-md-h2 {
+    @apply font-heading mb-2.5 mt-4 text-lg font-semibold tracking-tight text-content;
+  }
+
+  .saas-md-h3,
+  .saas-md-h4 {
+    @apply font-heading mb-2 mt-3 text-heading-sm font-semibold tracking-tight text-content;
+  }
+
+  .saas-md-p {
+    @apply my-2.5;
+  }
+
+  .saas-md-ul {
+    @apply my-2.5 list-disc space-y-1 pl-5;
+  }
+
+  .saas-md-ol {
+    @apply my-2.5 list-decimal space-y-1 pl-5;
+  }
+
+  .saas-md-li {
+    @apply pl-0.5;
+  }
+
+  .saas-md-a {
+    @apply font-medium text-accent underline-offset-2 hover:underline;
+  }
+
+  .saas-md-strong {
+    @apply font-semibold text-content;
+  }
+
+  .saas-md-em {
+    @apply italic;
+  }
+
+  .saas-md-blockquote {
+    @apply my-3 border-l-2 border-subtle pl-3 text-content-muted;
+  }
+
+  .saas-md-hr {
+    @apply my-4 border-0 border-t border-subtle;
+  }
+
+  .saas-md-code-inline {
+    @apply rounded-md bg-surface-muted px-1.5 py-0.5 font-mono text-ui-sm text-content;
+  }
+
+  .saas-md-pre {
+    @apply my-3 overflow-x-auto rounded-lg border border-subtle bg-surface-solid p-3 font-mono text-ui-sm leading-relaxed text-content;
+  }
+
+  .saas-md-table-wrap {
+    @apply my-3 overflow-x-auto rounded-lg border border-subtle;
+  }
+
+  .saas-md-table {
+    @apply w-full min-w-[20rem] border-collapse text-left text-ui-sm;
+  }
+
+  .saas-md-thead {
+    @apply bg-surface-muted;
+  }
+
+  .saas-md-th {
+    @apply border-b border-subtle px-3 py-2 font-semibold text-content;
+  }
+
+  .saas-md-td {
+    @apply border-b border-subtle px-3 py-2 text-content-secondary;
   }
 }

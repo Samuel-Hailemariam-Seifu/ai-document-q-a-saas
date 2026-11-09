@@ -3,7 +3,39 @@ import { Icon } from '../common/Icon'
 import { useDismiss } from '../common/useDismiss'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
 
-export function WorkspaceSwitcher() {
+/** Deterministic tile colour per workspace so switching feels tangible. */
+const TILE_COLORS = [
+  'from-teal-400 to-teal-600',
+  'from-sky-400 to-indigo-500',
+  'from-amber-400 to-orange-500',
+  'from-fuchsia-400 to-purple-600',
+  'from-emerald-400 to-green-600',
+  'from-rose-400 to-pink-600',
+]
+
+function tileColor(rawId: string | number): string {
+  const id = String(rawId)
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return TILE_COLORS[h % TILE_COLORS.length]
+}
+
+function WorkspaceTile({ id, name, size = 'md' }: { id: string | number; name: string; size?: 'sm' | 'md' }) {
+  return (
+    <span
+      className={[
+        'flex shrink-0 items-center justify-center rounded-md bg-gradient-to-br font-semibold text-white shadow-soft',
+        size === 'sm' ? 'size-5 text-[10px]' : 'size-6 text-[11px]',
+        tileColor(id),
+      ].join(' ')}
+      aria-hidden="true"
+    >
+      {name.trim().charAt(0).toUpperCase() || 'W'}
+    </span>
+  )
+}
+
+export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
   const { state, setActiveWorkspaceId, create } = useWorkspaces()
   const [open, setOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -14,9 +46,9 @@ export function WorkspaceSwitcher() {
   const close = useCallback(() => setOpen(false), [])
   const menuRef = useDismiss(open, close)
 
-  const activeName = useMemo(() => {
-    if (state.status !== 'ready') return 'Workspace'
-    return state.items.find((w) => w.id === state.activeWorkspaceId)?.name ?? 'Workspace'
+  const active = useMemo(() => {
+    if (state.status !== 'ready') return null
+    return state.items.find((w) => w.id === state.activeWorkspaceId) ?? null
   }, [state])
 
   const openModal = () => {
@@ -43,66 +75,73 @@ export function WorkspaceSwitcher() {
   }
 
   if (state.status !== 'ready') {
-    return <div className="h-9 w-40 animate-pulse rounded-lg bg-slate-200/70 dark:bg-white/10" />
+    return <div className={['saas-skeleton h-10', compact ? 'w-10' : 'w-full'].join(' ')} />
   }
+
+  const activeName = active?.name ?? 'Workspace'
 
   return (
     <>
       <div className="relative" ref={menuRef}>
         <button
           type="button"
-          className="flex h-9 max-w-[13rem] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-surface-dark dark:text-slate-200 dark:hover:bg-white/5"
+          className={[
+            'flex items-center gap-2 rounded-lg border border-subtle bg-surface-solid text-left shadow-soft transition-colors hover:border-strong',
+            compact ? 'size-10 justify-center' : 'h-10 w-full px-2',
+          ].join(' ')}
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-label="Switch workspace"
+          aria-label={`Workspace: ${activeName}. Switch workspace`}
+          title={compact ? activeName : undefined}
         >
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary dark:text-primary-dark">
-            <Icon name="workspaces" size={14} />
-          </span>
-          <span className="truncate">{activeName}</span>
-          <Icon name="chevronDown" size={16} className="shrink-0 text-slate-400" />
+          <WorkspaceTile id={active?.id ?? 'w'} name={activeName} />
+          {!compact ? (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-content">{activeName}</span>
+              </span>
+              <Icon name="chevronDown" size={14} className="shrink-0 text-content-muted" />
+            </>
+          ) : null}
         </button>
 
         {open ? (
           <div
-            className="absolute left-0 top-11 z-40 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-surface-dark"
+            className={[
+              'saas-menu absolute z-50 w-64 overflow-hidden rounded-xl p-1',
+              compact ? 'left-0 top-12' : 'left-0 right-0 top-12 w-auto min-w-56',
+            ].join(' ')}
             role="menu"
           >
-            <p className="saas-label px-2.5 py-1.5">Workspaces</p>
+            <p className="px-2.5 pb-1 pt-1.5 text-xs font-medium text-content-muted">Workspaces</p>
             <div className="custom-scrollbar max-h-64 overflow-y-auto">
               {state.items.map((w) => {
-                const active = w.id === state.activeWorkspaceId
+                const isActive = w.id === state.activeWorkspaceId
                 return (
                   <button
                     key={w.id}
                     type="button"
-                    role="menuitem"
-                    className={[
-                      'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors',
-                      active
-                        ? 'bg-primary/10 text-primary dark:text-primary-dark'
-                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5',
-                    ].join(' ')}
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    className={['saas-menu-item', isActive ? 'text-content' : ''].join(' ')}
                     onClick={() => {
                       setActiveWorkspaceId(w.id)
                       setOpen(false)
                     }}
                   >
-                    <span className="truncate">{w.name}</span>
-                    {active ? <Icon name="checkMark" size={16} className="shrink-0" /> : null}
+                    <WorkspaceTile id={w.id} name={w.name} size="sm" />
+                    <span className="min-w-0 flex-1 truncate">{w.name}</span>
+                    {isActive ? <Icon name="checkMark" size={15} className="shrink-0 text-accent-text" /> : null}
                   </button>
                 )
               })}
             </div>
-            <div className="my-1.5 h-px bg-slate-200 dark:bg-slate-700" />
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
-              onClick={openModal}
-            >
-              <Icon name="plus" size={16} className="text-slate-400" />
+            <div className="saas-divider my-1" />
+            <button type="button" role="menuitem" className="saas-menu-item" onClick={openModal}>
+              <span className="flex size-5 items-center justify-center rounded-md border border-dashed border-strong text-content-muted">
+                <Icon name="plus" size={12} />
+              </span>
               New workspace
             </button>
           </div>
@@ -111,7 +150,7 @@ export function WorkspaceSwitcher() {
 
       {modalOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+          className="saas-overlay"
           role="dialog"
           aria-modal="true"
           aria-label="Create workspace"
@@ -119,11 +158,14 @@ export function WorkspaceSwitcher() {
             if (e.target === e.currentTarget) setModalOpen(false)
           }}
         >
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-surface-dark">
-            <p className="saas-section-title">Create workspace</p>
-            <p className="saas-meta mt-1">Workspaces keep documents and chats isolated.</p>
+          <div className="saas-dialog max-w-md">
+            <div className="saas-icon-tile-accent mb-4">
+              <Icon name="workspaces" size={18} />
+            </div>
+            <p className="text-lg font-semibold tracking-tight text-content">Create a workspace</p>
+            <p className="saas-subtitle">Workspaces keep documents, chats and billing separate — one per team or project.</p>
 
-            <label htmlFor="workspace-name" className="saas-label mt-4 block">
+            <label htmlFor="workspace-name" className="saas-field-label mt-5">
               Workspace name
             </label>
             <input
@@ -131,8 +173,8 @@ export function WorkspaceSwitcher() {
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., HR Policies"
-              className="saas-input mt-2"
+              placeholder="e.g. HR Policies"
+              className="saas-input"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setModalOpen(false)
                 if (e.key === 'Enter') {
@@ -141,9 +183,9 @@ export function WorkspaceSwitcher() {
                 }
               }}
             />
-            {error ? <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">{error}</p> : null}
+            {error ? <p className="mt-2 text-xs font-medium text-danger">{error}</p> : null}
 
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 className="saas-btn saas-btn-secondary"
@@ -158,8 +200,7 @@ export function WorkspaceSwitcher() {
                 disabled={creating || name.trim().length < 2}
                 onClick={() => void submit()}
               >
-                <Icon name={creating ? 'hourglass' : 'plus'} size={16} />
-                {creating ? 'Creating…' : 'Create'}
+                {creating ? 'Creating…' : 'Create workspace'}
               </button>
             </div>
           </div>

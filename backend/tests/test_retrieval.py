@@ -7,7 +7,8 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.services.embeddings_service import EmbeddingModelMismatchError, embed_texts
+from app.services import embeddings_service
+from app.services.embeddings_service import EmbeddingModelMismatchError
 from app.services.retrieval_service import (
     assert_workspace_embedding_compatible,
     hybrid_top_k,
@@ -32,7 +33,7 @@ def _add_doc_with_chunks(
     workspace_id: int,
     name: str,
     chunks: list[str],
-    model: str = "text-embedding-3-small",
+    model: str = "BAAI/bge-small-en-v1.5",
 ) -> Document:
     doc = Document(
         workspace_id=workspace_id,
@@ -47,7 +48,7 @@ def _add_doc_with_chunks(
     )
     db.add(doc)
     db.flush()
-    embeddings = embed_texts(chunks)
+    embeddings = embeddings_service.embed_texts(chunks)
     for i, (content, emb) in enumerate(zip(chunks, embeddings, strict=True)):
         db.add(
             DocumentChunk(
@@ -76,7 +77,7 @@ def test_vector_search_paraphrase(db: Session):
     )
     # Shares lexical signal with the refund chunk under the deterministic test embedder.
     q = "Can customers request a refund within fourteen days of purchase?"
-    q_emb = embed_texts([q])[0]
+    q_emb = embeddings_service.embed_texts([q])[0]
     hits = top_k_chunks_for_workspace(
         db, workspace_id=ws.id, query_embedding=q_emb, k=1
     )
@@ -119,7 +120,7 @@ def test_hybrid_includes_vector_and_keyword_signals(db: Session):
         ],
     )
     q = "What is ZX-4401-BETA used for when returning products?"
-    q_emb = embed_texts([q])[0]
+    q_emb = embeddings_service.embed_texts([q])[0]
     hits = hybrid_top_k(
         db,
         workspace_id=ws.id,
@@ -147,7 +148,7 @@ def test_workspace_isolation(db: Session):
         chunks=["Public brochure about office plants and coffee."],
     )
     q = "NEBULA-9"
-    q_emb = embed_texts([q])[0]
+    q_emb = embeddings_service.embed_texts([q])[0]
     hits = hybrid_top_k(
         db,
         workspace_id=ws_b.id,
@@ -174,7 +175,7 @@ def test_document_ids_filter(db: Session):
         chunks=["Alpha protocol ALPHA-100 also appears in the skipped document."],
     )
     q = "ALPHA-100"
-    q_emb = embed_texts([q])[0]
+    q_emb = embeddings_service.embed_texts([q])[0]
     hits = hybrid_top_k(
         db,
         workspace_id=ws.id,
@@ -194,14 +195,14 @@ def test_mixed_embedding_models_rejected(db: Session):
         workspace_id=ws.id,
         name="a.txt",
         chunks=["first document"],
-        model="text-embedding-3-small",
+        model="BAAI/bge-small-en-v1.5",
     )
     _add_doc_with_chunks(
         db,
         workspace_id=ws.id,
         name="b.txt",
         chunks=["second document"],
-        model="BAAI/bge-small-en-v1.5",
+        model="text-embedding-3-small",
     )
     with pytest.raises(EmbeddingModelMismatchError):
         assert_workspace_embedding_compatible(db, workspace_id=ws.id)
@@ -211,9 +212,9 @@ def test_mixed_embedding_models_rejected(db: Session):
 
     docs = db.execute(select(Document).where(Document.workspace_id == ws.id)).scalars().all()
     for d in docs:
-        d.embedding_model = "BAAI/bge-small-en-v1.5"
+        d.embedding_model = "text-embedding-3-small"
     db.flush()
     with pytest.raises(EmbeddingModelMismatchError):
         assert_workspace_embedding_compatible(
-            db, workspace_id=ws.id, model="text-embedding-3-small"
+            db, workspace_id=ws.id, model="BAAI/bge-small-en-v1.5"
         )

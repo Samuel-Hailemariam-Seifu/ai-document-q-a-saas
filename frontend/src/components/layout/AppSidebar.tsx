@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { PRODUCT_NAME } from '../../lib/brand'
+import { formatNumber } from '../../lib/format'
 import { listRecentChats, type ChatPreview } from '../../services/chat'
+import { getUsageSnapshot, type UsageSnapshot } from '../../services/usage'
 import { useWorkspaces } from '../../workspaces/WorkspaceContext'
 import { Icon, type IconName } from '../common/Icon'
 import { LogoMark } from '../brand/LogoMark'
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 const COLLAPSED_KEY = 'documind.sidebarCollapsed'
 
@@ -25,25 +29,23 @@ function writeCollapsed(v: boolean) {
 
 type NavItem = { to: string; label: string; icon: IconName; end?: true }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
-  { to: '/app/documents', label: 'Documents', icon: 'folder' },
+const PRIMARY_NAV: NavItem[] = [
+  { to: '/app', label: 'Overview', icon: 'dashboard', end: true },
   { to: '/app/chat', label: 'Assistant', icon: 'sparkles' },
+  { to: '/app/documents', label: 'Documents', icon: 'folder' },
+]
+
+const ACCOUNT_NAV: NavItem[] = [
   { to: '/app/billing', label: 'Billing', icon: 'billing' },
   { to: '/app/settings', label: 'Settings', icon: 'settings' },
 ]
 
-const ICON_BUTTON =
-  'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
-
 function navItemClass(compact: boolean) {
   return ({ isActive }: { isActive: boolean }) =>
     [
-      'flex h-10 items-center gap-3 rounded-lg text-sm transition-colors',
-      compact ? 'w-10 justify-center' : 'px-3',
-      isActive
-        ? 'bg-primary/10 font-semibold text-primary dark:text-primary-dark'
-        : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white',
+      'saas-nav-item',
+      compact ? 'w-9 justify-center px-0' : '',
+      isActive ? 'saas-nav-item-active' : '',
     ].join(' ')
 }
 
@@ -58,6 +60,7 @@ export function AppSidebar({
   const [collapsed, setCollapsed] = useState<boolean>(() => (mobile ? false : readCollapsed()))
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
+  const [usage, setUsage] = useState<UsageSnapshot | null>(null)
 
   // Collapsed is a desktop-only affordance; the mobile drawer always shows labels.
   const compact = !mobile && collapsed
@@ -75,12 +78,25 @@ export function AppSidebar({
     }
   }, [workspaceId])
 
+  const refreshUsage = useCallback(async () => {
+    if (!workspaceId) {
+      setUsage(null)
+      return
+    }
+    try {
+      setUsage(await getUsageSnapshot(workspaceId))
+    } catch {
+      setUsage(null)
+    }
+  }, [workspaceId])
+
   useEffect(() => {
     const t = window.setTimeout(() => {
       void refreshRecent()
+      void refreshUsage()
     }, 0)
     return () => window.clearTimeout(t)
-  }, [refreshRecent])
+  }, [refreshRecent, refreshUsage])
 
   useEffect(() => {
     if (!mobile) return
@@ -98,124 +114,133 @@ export function AppSidebar({
     })
   }
 
+  const renderNav = (items: NavItem[]) => (
+    <nav className={['flex flex-col gap-0.5', compact ? 'items-center' : ''].join(' ')}>
+      {items.map((it) => (
+        <NavLink
+          key={it.to}
+          to={it.to}
+          end={it.end}
+          className={navItemClass(compact)}
+          title={compact ? it.label : undefined}
+          onClick={() => onRequestClose?.()}
+        >
+          <Icon name={it.icon} size={16} className="shrink-0 opacity-80" />
+          {!compact ? <span className="truncate">{it.label}</span> : null}
+        </NavLink>
+      ))}
+    </nav>
+  )
+
+  const isPro = usage?.plan === 'pro'
+
   return (
     <aside
       className={[
-        'flex flex-col bg-white dark:bg-surface-dark',
+        'flex flex-col',
         mobile
-          ? 'fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] shadow-xl'
-          : 'hidden shrink-0 border-r border-slate-200 transition-[width] duration-200 ease-out dark:border-slate-800 md:flex',
-        mobile ? '' : compact ? 'w-[76px]' : 'w-[272px]',
+          ? 'fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] animate-pop-in border-r border-subtle bg-surface-canvas shadow-overlay'
+          : 'hidden shrink-0 transition-[width] duration-200 ease-out md:flex',
+        mobile ? '' : compact ? 'w-[64px]' : 'w-[248px]',
       ].join(' ')}
     >
-      <div
-        className={[
-          'flex h-16 shrink-0 items-center gap-2.5 border-b border-slate-200 dark:border-slate-800',
-          compact ? 'justify-center px-2' : 'px-4',
-        ].join(' ')}
-      >
-        <Link
-          to="/app"
-          onClick={() => onRequestClose?.()}
-          className="flex min-w-0 items-center gap-2.5"
-          aria-label="DocuMind AI home"
-        >
-          <LogoMark size={26} className="shrink-0" />
-          {!compact ? (
-            <span className="truncate font-heading text-[15px] font-semibold tracking-[-0.01em] text-slate-900 dark:text-white">
-              DocuMind AI
-            </span>
-          ) : null}
-        </Link>
-
-        {mobile ? (
-          <button type="button" className={`${ICON_BUTTON} ml-auto`} aria-label="Close navigation" onClick={onRequestClose}>
-            <Icon name="close" size={18} />
-          </button>
-        ) : null}
-
-        {!mobile && !compact ? (
-          <button
-            type="button"
-            className={`${ICON_BUTTON} ml-auto`}
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
-            onClick={toggleCollapsed}
+      {/* Brand + workspace */}
+      <div className={['flex shrink-0 flex-col gap-2 pt-3', compact ? 'items-center px-2' : 'px-3'].join(' ')}>
+        <div className={['flex h-9 items-center', compact ? 'justify-center' : 'gap-2 px-1'].join(' ')}>
+          <Link
+            to="/app"
+            onClick={() => onRequestClose?.()}
+            className="flex min-w-0 items-center gap-2"
+            aria-label={`${PRODUCT_NAME} home`}
+            title={compact ? PRODUCT_NAME : undefined}
           >
-            <Icon name="panelClose" size={18} />
-          </button>
-        ) : null}
+            <LogoMark size={24} className="shrink-0" />
+            {!compact ? (
+              <span className="truncate text-[0.9375rem] font-semibold tracking-[-0.02em] text-content">
+                {PRODUCT_NAME}
+              </span>
+            ) : null}
+          </Link>
+
+          {mobile ? (
+            <button
+              type="button"
+              className="saas-icon-btn ml-auto size-8"
+              aria-label="Close navigation"
+              onClick={onRequestClose}
+            >
+              <Icon name="close" size={16} />
+            </button>
+          ) : null}
+
+          {!mobile && !compact ? (
+            <button
+              type="button"
+              className="saas-icon-btn ml-auto size-8"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+              onClick={toggleCollapsed}
+            >
+              <Icon name="panelClose" size={16} />
+            </button>
+          ) : null}
+        </div>
+
+        <WorkspaceSwitcher compact={compact} />
       </div>
 
-      <div className={['custom-scrollbar min-h-0 flex-1 overflow-y-auto py-4', compact ? 'px-3' : 'px-3'].join(' ')}>
+      <div className={['custom-scrollbar min-h-0 flex-1 overflow-y-auto pb-4 pt-4', compact ? 'px-2' : 'px-3'].join(' ')}>
         {compact ? (
           <div className="mb-2 flex justify-center">
             <button
               type="button"
-              className={ICON_BUTTON}
+              className="saas-icon-btn size-8"
               aria-label="Expand sidebar"
               title="Expand sidebar"
               onClick={toggleCollapsed}
             >
-              <Icon name="panelOpen" size={18} />
+              <Icon name="panelOpen" size={16} />
             </button>
           </div>
-        ) : (
-          <p className="saas-label px-3 pb-2">Menu</p>
-        )}
+        ) : null}
 
-        <nav className={['flex flex-col gap-1', compact ? 'items-center' : ''].join(' ')}>
-          {NAV_ITEMS.map((it) => (
-            <NavLink
-              key={it.to}
-              to={it.to}
-              end={it.end}
-              className={navItemClass(compact)}
-              title={compact ? it.label : undefined}
-              onClick={() => onRequestClose?.()}
-            >
-              <Icon name={it.icon} size={18} className="shrink-0" />
-              {!compact ? <span className="truncate">{it.label}</span> : null}
-            </NavLink>
-          ))}
-        </nav>
+        {renderNav(PRIMARY_NAV)}
 
         {!compact ? (
           <div className="mt-6">
             <button
               type="button"
-              className="saas-label flex w-full items-center justify-between rounded-lg px-3 py-1.5 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
+              className="group flex h-7 w-full items-center justify-between rounded-md px-2.5 text-xs font-medium text-content-muted transition-colors hover:text-content"
               onClick={() => setRecentOpen((v) => !v)}
               aria-expanded={recentOpen}
             >
-              <span className="flex items-center gap-1.5">
-                <Icon name="history" size={14} />
-                Recent chats
-              </span>
+              Recent chats
               <Icon
                 name="chevronDown"
                 size={14}
-                className={recentOpen ? 'transition-transform' : '-rotate-90 transition-transform'}
+                className={[
+                  'opacity-0 transition group-hover:opacity-100',
+                  recentOpen ? '' : '-rotate-90 opacity-100',
+                ].join(' ')}
               />
             </button>
 
             {recentOpen ? (
-              <div className="mt-1 flex flex-col gap-0.5">
+              <div className="mt-0.5 flex flex-col gap-0.5">
                 {recentChats.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">No recent chats yet.</p>
+                  <p className="px-2.5 py-1.5 text-ui-sm text-content-faint">No chats yet</p>
                 ) : (
                   recentChats.map((c) => (
                     <Link
                       key={c.id}
                       to={`/app/chat?chatId=${c.id}`}
                       title={c.title}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                      className="saas-nav-item font-normal"
                       onClick={() => {
                         void refreshRecent()
                         onRequestClose?.()
                       }}
                     >
-                      <Icon name="chat" size={16} className="shrink-0 text-slate-400" />
                       <span className="truncate">{c.title}</span>
                     </Link>
                   ))
@@ -224,43 +249,93 @@ export function AppSidebar({
             ) : null}
           </div>
         ) : null}
+
+        <div className={compact ? 'mt-4' : 'mt-6'}>
+          {!compact ? <p className="flex h-7 items-center px-2.5 text-xs font-medium text-content-muted">Account</p> : null}
+          {renderNav(ACCOUNT_NAV)}
+        </div>
       </div>
 
-      <div
-        className={[
-          'shrink-0 border-t border-slate-200 dark:border-slate-800',
-          compact ? 'flex justify-center px-2 py-3' : 'px-3 py-3',
-        ].join(' ')}
-      >
+      {/* Plan + usage */}
+      <div className={['shrink-0', compact ? 'flex justify-center px-2 pb-3' : 'px-3 pb-3'].join(' ')}>
         {compact ? (
           <Link
             to="/app/billing"
-            className={ICON_BUTTON}
-            aria-label="Upgrade plan"
-            title="Upgrade plan"
+            className="saas-icon-btn"
+            aria-label={isPro ? 'Billing' : 'Upgrade plan'}
+            title={
+              usage
+                ? `${formatNumber(usage.questionsUsed)} / ${formatNumber(usage.questionsLimit)} questions`
+                : 'Billing'
+            }
             onClick={() => onRequestClose?.()}
           >
-            <Icon name="crown" size={18} />
+            <Icon name="crown" size={16} />
           </Link>
         ) : (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-white/5">
-            <div className="flex items-center gap-2">
-              <Icon name="crown" size={15} className="shrink-0 text-primary dark:text-primary-dark" />
-              <p className="text-sm font-medium text-slate-900 dark:text-white">Upgrade plan</p>
+          <div className="rounded-xl border border-subtle bg-surface-solid p-3 shadow-soft">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-ui-sm font-semibold text-content">{isPro ? 'Pro plan' : 'Free plan'}</p>
+              {usage?.approximate ? (
+                <span className="text-2xs text-content-faint" title="Usage is estimated">
+                  ≈
+                </span>
+              ) : null}
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              Higher limits and faster processing.
-            </p>
-            <Link
-              to="/app/billing"
-              className="mt-3 flex h-8 items-center justify-center rounded-lg bg-primary text-xs font-medium text-white transition-colors hover:bg-primary/90"
-              onClick={() => onRequestClose?.()}
-            >
-              View plans
-            </Link>
+            {usage ? (
+              <div className="mt-2.5 space-y-2.5">
+                <SidebarMeter label="Questions" used={usage.questionsUsed} limit={usage.questionsLimit} />
+                <SidebarMeter label="Documents" used={usage.documentsUsed} limit={usage.documentsLimit} />
+              </div>
+            ) : (
+              <div className="mt-2.5 space-y-2">
+                <div className="saas-skeleton h-3 w-full" />
+                <div className="saas-skeleton h-3 w-2/3" />
+              </div>
+            )}
+            {!isPro ? (
+              <Link
+                to="/app/billing"
+                className="saas-btn saas-btn-primary saas-btn-sm mt-3 w-full"
+                onClick={() => onRequestClose?.()}
+              >
+                <Icon name="sparkles" size={14} />
+                Upgrade to Pro
+              </Link>
+            ) : (
+              <Link
+                to="/app/billing"
+                className="saas-btn saas-btn-secondary saas-btn-sm mt-3 w-full"
+                onClick={() => onRequestClose?.()}
+              >
+                Manage billing
+              </Link>
+            )}
           </div>
         )}
       </div>
     </aside>
+  )
+}
+
+function SidebarMeter({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  const over = used >= limit
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="text-content-muted">{label}</span>
+        <span className={over ? 'font-medium text-danger' : 'tabular text-content-secondary'}>
+          {formatNumber(used)}
+          <span className="text-content-faint"> / {formatNumber(limit)}</span>
+        </span>
+      </div>
+      <div className="saas-progress mt-1.5">
+        <div
+          className={['h-full rounded-full transition-[width]', over ? 'bg-rose-500' : 'bg-[var(--accent)]'].join(' ')}
+          style={{ width: `${Math.max(pct, used > 0 ? 3 : 0)}%` }}
+        />
+      </div>
+    </div>
   )
 }

@@ -7,6 +7,7 @@ export type DocumentListItem = {
   file_size: number
   status: string
   chunk_count: number
+  error_message?: string | null
   created_at: string
 }
 
@@ -87,6 +88,13 @@ export async function getDocumentChunks(documentId: number): Promise<DocumentChu
 export async function deleteDocument(documentId: number): Promise<void> {
   return apiRequest<void>(`/api/documents/${documentId}`, {
     method: 'DELETE',
+    auth: true,
+  })
+}
+
+export async function reprocessDocument(documentId: number): Promise<DocumentDetail> {
+  return apiRequest<DocumentDetail>(`/api/documents/${documentId}/reprocess`, {
+    method: 'POST',
     auth: true,
   })
 }

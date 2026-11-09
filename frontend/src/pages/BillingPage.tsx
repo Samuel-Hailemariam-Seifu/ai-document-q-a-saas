@@ -1,22 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { createCheckoutSession, createPortalSession, getSubscription, type Subscription } from '../services/billing'
+import { getUsageSnapshot, type UsageSnapshot } from '../services/usage'
 import { useWorkspaces } from '../workspaces/WorkspaceContext'
-import { Icon } from '../components/common/Icon'
+import { Icon, type IconName } from '../components/common/Icon'
 import { PageHeader } from '../components/layout/PageHeader'
-import { formatDate } from '../lib/format'
-
-const PRO_FEATURES = [
-  'Higher limits for documents and questions',
-  'Faster background ingestion',
-  'Priority model access',
-]
+import { formatBytes, formatDate, formatNumber } from '../lib/format'
+import { FREE_PLAN_LIMITS, PRO_PLAN_LIMITS } from '../lib/planLimits'
 
 function planFor(status: string): { label: string; badgeClass: string; isPro: boolean } {
   if (status === 'active' || status === 'trialing') {
     return {
       label: 'Pro',
-      badgeClass: 'bg-primary/10 text-primary dark:text-primary-dark',
+      badgeClass: 'saas-badge-accent',
       isPro: true,
     }
   }
@@ -36,9 +32,58 @@ function planFor(status: string): { label: string; badgeClass: string; isPro: bo
   }
   return {
     label: 'Free',
-    badgeClass: 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300',
+    badgeClass: 'saas-badge-neutral',
     isPro: false,
   }
+}
+
+function UsageCard({
+  label,
+  icon,
+  used,
+  limit,
+  format,
+}: {
+  label: string
+  icon: IconName
+  used: number
+  limit: number
+  format: (n: number) => string
+}) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  const over = used >= limit
+  const near = !over && pct >= 80
+  return (
+    <div className="saas-card p-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-ui-sm text-content-muted">
+          <Icon name={icon} size={14} className="text-content-faint" />
+          {label}
+        </span>
+        <span
+          className={[
+            'tabular text-xs font-medium',
+            over ? 'text-danger' : near ? 'text-warning' : 'text-content-muted',
+          ].join(' ')}
+        >
+          {pct}%
+        </span>
+      </div>
+      <p className="mt-3 flex items-baseline gap-1.5">
+        <span className="saas-stat">{format(used)}</span>
+        <span className="text-sm text-content-muted">of {format(limit)}</span>
+      </p>
+      <div className="saas-progress mt-4">
+        <div
+          className={[
+            'h-full rounded-full transition-[width]',
+            over ? 'bg-rose-500' : near ? 'bg-amber-500' : 'bg-[var(--accent)]',
+          ].join(' ')}
+          style={{ width: `${Math.max(pct, used > 0 ? 2 : 0)}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export function BillingPage() {
@@ -47,6 +92,7 @@ export function BillingPage() {
   const workspaceId = state.status === 'ready' ? state.activeWorkspaceId : null
 
   const [sub, setSub] = useState<Subscription | null>(null)
+  const [usage, setUsage] = useState<UsageSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -58,7 +104,12 @@ export function BillingPage() {
     setLoading(true)
     setError(null)
     try {
-      setSub(await getSubscription(workspaceId))
+      const [subscription, snap] = await Promise.all([
+        getSubscription(workspaceId),
+        getUsageSnapshot(workspaceId),
+      ])
+      setSub(subscription)
+      setUsage(snap)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load billing status')
     } finally {
@@ -101,65 +152,104 @@ export function BillingPage() {
   if (!workspaceId) {
     return (
       <div className="saas-card flex flex-col items-center justify-center px-6 py-14 text-center">
-        <Icon name="workspaces" size={24} className="text-slate-300 dark:text-slate-600" />
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Select a workspace first.</p>
+        <Icon name="workspaces" size={24} className="text-content-muted" />
+        <p className="mt-3 text-sm text-content-muted">Select a workspace first.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="Billing"
-        description="Manage the subscription for this workspace."
+        description="Your plan, usage this period, and invoices for this workspace."
         actions={
-          <button type="button" className="saas-btn saas-btn-secondary" onClick={() => void refresh()} disabled={busy}>
-            <Icon name="refresh" size={16} className={loading ? 'animate-spin' : undefined} />
-            Refresh
+          <button
+            type="button"
+            className="saas-btn saas-btn-secondary"
+            onClick={() => void refresh()}
+            disabled={busy}
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            <Icon name="refresh" size={15} className={loading ? 'animate-spin' : undefined} />
+            <span className="sm:hidden">Refresh</span>
           </button>
         }
       />
 
       {statusBanner === 'success' ? (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
           <Icon name="check" size={16} className="mt-0.5 shrink-0" />
           Subscription updated successfully.
         </div>
       ) : statusBanner === 'cancel' ? (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
           <Icon name="info" size={16} className="mt-0.5 shrink-0" />
-          Checkout canceled.
+          Checkout canceled — you have not been charged.
         </div>
       ) : null}
 
       {error ? (
-        <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
-          <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
-          {error}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+          <span className="flex items-start gap-2">
+            <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
+            {error}
+          </span>
+          <button type="button" className="saas-btn saas-btn-secondary saas-btn-sm" onClick={() => void refresh()}>
+            Retry
+          </button>
         </div>
       ) : null}
 
-      <div className="saas-card p-5 sm:p-6">
+      {/* Current plan */}
+      <section className="saas-card overflow-hidden">
         {loading ? (
-          <div className="space-y-3">
-            <div className="h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-white/10" />
-            <div className="h-8 w-32 animate-pulse rounded bg-slate-200 dark:bg-white/10" />
-            <div className="h-4 w-64 animate-pulse rounded bg-slate-200 dark:bg-white/10" />
+          <div className="space-y-3 p-6">
+            <div className="saas-skeleton h-4 w-24" />
+            <div className="saas-skeleton h-8 w-40" />
+            <div className="saas-skeleton h-4 w-64" />
           </div>
         ) : (
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <p className="saas-label">Current plan</p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="saas-stat">{plan.label}</span>
-                <span className={`saas-badge ${plan.badgeClass}`}>{sub?.status ?? 'inactive'}</span>
+          <div className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <span
+                className={[
+                  'flex size-11 shrink-0 items-center justify-center rounded-xl',
+                  plan.isPro
+                    ? 'bg-gradient-to-br from-teal-400 to-teal-700 text-white shadow-raised'
+                    : 'saas-icon-tile size-11',
+                ].join(' ')}
+              >
+                <Icon name={plan.isPro ? 'crown' : 'layers'} size={20} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-ui-sm text-content-muted">Current plan</p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="text-xl font-semibold tracking-tight text-content">{plan.label}</span>
+                  <span className={`saas-badge capitalize ${plan.badgeClass}`}>
+                    {(sub?.status ?? 'inactive').replace('_', ' ')}
+                  </span>
+                </div>
+                <p className="saas-meta mt-1">
+                  {sub?.current_period_end
+                    ? `${sub.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(sub.current_period_end)}`
+                    : plan.isPro
+                      ? '$29 / month'
+                      : 'Free forever · upgrade any time for higher limits'}
+                </p>
               </div>
-              {sub?.current_period_end ? (
-                <p className="saas-meta mt-2">Renews {formatDate(sub.current_period_end)}</p>
-              ) : null}
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                className="saas-btn saas-btn-secondary"
+                disabled={busy}
+                onClick={() => void openPortal()}
+              >
+                {plan.isPro ? 'Change or cancel plan' : 'Manage billing'}
+              </button>
               {plan.isPro ? null : (
                 <button
                   type="button"
@@ -167,44 +257,184 @@ export function BillingPage() {
                   disabled={busy}
                   onClick={() => void startCheckout()}
                 >
-                  <Icon name="crown" size={16} />
+                  <Icon name="sparkles" size={15} />
                   Upgrade to Pro
                 </button>
               )}
-              <button
-                type="button"
-                className="saas-btn saas-btn-secondary"
-                disabled={busy}
-                onClick={() => void openPortal()}
-              >
-                Manage billing
-              </button>
             </div>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="saas-card p-5 sm:p-6">
-          <h2 className="saas-section-title">Pro includes</h2>
-          <ul className="mt-4 space-y-3">
-            {PRO_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
-                <Icon name="check" size={16} className="mt-0.5 shrink-0 text-primary dark:text-primary-dark" />
-                {f}
-              </li>
-            ))}
-          </ul>
+      {/* Usage */}
+      <section>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="saas-section-title">Usage</h2>
+          {usage?.approximate ? (
+            <span className="text-xs text-content-muted">Estimated from workspace activity</span>
+          ) : null}
         </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {loading || !usage ? (
+            [0, 1, 2].map((i) => (
+              <div key={i} className="saas-card space-y-3 p-5">
+                <div className="saas-skeleton h-4 w-24" />
+                <div className="saas-skeleton h-7 w-20" />
+                <div className="saas-skeleton h-1.5 w-full" />
+              </div>
+            ))
+          ) : (
+            <>
+              <UsageCard
+                label="Documents"
+                icon="file"
+                used={usage.documentsUsed}
+                limit={usage.documentsLimit}
+                format={formatNumber}
+              />
+              <UsageCard
+                label="Questions this month"
+                icon="sparkles"
+                used={usage.questionsUsed}
+                limit={usage.questionsLimit}
+                format={formatNumber}
+              />
+              <UsageCard
+                label="Storage"
+                icon="layers"
+                used={usage.storageUsedBytes}
+                limit={usage.storageLimitBytes}
+                format={formatBytes}
+              />
+            </>
+          )}
+        </div>
+      </section>
 
-        <div className="saas-card p-5 sm:p-6">
-          <h2 className="saas-section-title">Good to know</h2>
-          <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            Plan status is kept in sync through Stripe webhooks. If you just upgraded and still see the old plan, wait a
-            few seconds and hit Refresh.
-          </p>
+      {/* Plans */}
+      <section>
+        <h2 className="saas-section-title mb-3">Plans</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <PlanCard
+            name="Free"
+            price="$0"
+            blurb="For trying citation-backed Q&A on a few files."
+            current={!plan.isPro}
+            features={[
+              `Up to ${formatNumber(FREE_PLAN_LIMITS.documents)} documents`,
+              `${formatNumber(FREE_PLAN_LIMITS.questionsPerMonth)} questions / month`,
+              `${formatBytes(FREE_PLAN_LIMITS.storageBytes)} storage`,
+              'Standard retrieval & citations',
+            ]}
+          />
+          <PlanCard
+            name="Pro"
+            price="$29"
+            blurb="For teams that rely on their documents every day."
+            current={plan.isPro}
+            highlight
+            features={[
+              `Up to ${formatNumber(PRO_PLAN_LIMITS.documents)} documents`,
+              `${formatNumber(PRO_PLAN_LIMITS.questionsPerMonth)} questions / month`,
+              `${formatBytes(PRO_PLAN_LIMITS.storageBytes)} storage`,
+              'Priority processing & higher throughput',
+            ]}
+            action={
+              plan.isPro ? null : (
+                <button
+                  type="button"
+                  className="saas-btn saas-btn-primary w-full"
+                  disabled={busy}
+                  onClick={() => void startCheckout()}
+                >
+                  Upgrade to Pro
+                </button>
+              )
+            }
+          />
         </div>
+      </section>
+
+      {/* Invoices */}
+      <section className="saas-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="saas-icon-tile">
+            <Icon name="billing" size={16} />
+          </span>
+          <div>
+            <h2 className="text-sm font-medium text-content">Invoices & payment method</h2>
+            <p className="saas-meta mt-0.5">
+              Download receipts and update your card in the secure billing portal.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="saas-btn saas-btn-secondary shrink-0"
+          disabled={busy}
+          onClick={() => void openPortal()}
+        >
+          Open billing portal
+          <Icon name="externalLink" size={14} />
+        </button>
+      </section>
+
+      <p className="text-center text-xs text-content-muted">
+        Questions about plans or invoices?{' '}
+        <Link className="saas-link" to="/app/settings">
+          Contact us from Settings
+        </Link>
+      </p>
+    </div>
+  )
+}
+
+function PlanCard({
+  name,
+  price,
+  blurb,
+  features,
+  current,
+  highlight,
+  action,
+}: {
+  name: string
+  price: string
+  blurb: string
+  features: string[]
+  current: boolean
+  highlight?: boolean
+  action?: ReactNode
+}) {
+  return (
+    <div
+      className={[
+        'relative flex flex-col rounded-xl border bg-surface-solid p-6',
+        highlight ? 'border-[color-mix(in_srgb,var(--accent)_45%,transparent)] shadow-raised' : 'border-subtle shadow-soft',
+      ].join(' ')}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-content">{name}</p>
+        {current ? (
+          <span className="saas-badge saas-badge-neutral">Current plan</span>
+        ) : highlight ? (
+          <span className="saas-badge saas-badge-accent">Recommended</span>
+        ) : null}
       </div>
+      <p className="mt-3 flex items-baseline gap-1">
+        <span className="text-3xl font-semibold tracking-tight text-content">{price}</span>
+        <span className="text-sm text-content-muted">/ month</span>
+      </p>
+      <p className="saas-meta mt-1">{blurb}</p>
+      <ul className="mt-5 flex-1 space-y-2.5 text-sm text-content-secondary">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-2.5">
+            <Icon name="checkMark" size={15} className="mt-0.5 shrink-0 text-accent-text" />
+            {f}
+          </li>
+        ))}
+      </ul>
+      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   )
 }

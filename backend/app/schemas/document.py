@@ -27,6 +27,7 @@ class DocumentListOut(BaseModel):
     file_size: int
     status: str
     chunk_count: int
+    error_message: str | None = None
     created_at: datetime
 
 

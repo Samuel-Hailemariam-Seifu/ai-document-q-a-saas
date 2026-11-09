@@ -60,9 +60,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     groq_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
-    embedding_dim: int = 1536
+    # Kept for docs/compat; Groq accounts often lack embedding model access — prefer FastEmbed.
+    groq_embedding_model: str = "nomic-embed-text-v1.5"
+    embedding_dim: int = 384
     local_embedding_model: str = "BAAI/bge-small-en-v1.5"
-    llm_model: str = "llama-3.1-8b-instant"  # Groq default; OpenAI uses its own model string
+    llm_model: str = "openai/gpt-oss-20b"  # Groq default (llama-3.1-8b-instant retired); OpenAI uses its own
     chunk_size: int = 2000
     chunk_overlap: int = 250
     retrieval_top_k: int = 12
