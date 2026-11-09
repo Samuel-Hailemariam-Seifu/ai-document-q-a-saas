@@ -9,24 +9,6 @@ import { Icon, type IconName } from '../common/Icon'
 import { LogoMark } from '../brand/LogoMark'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
-const COLLAPSED_KEY = 'documind.sidebarCollapsed'
-
-function readCollapsed(): boolean {
-  try {
-    return localStorage.getItem(COLLAPSED_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeCollapsed(v: boolean) {
-  try {
-    localStorage.setItem(COLLAPSED_KEY, v ? '1' : '0')
-  } catch {
-    // ignore
-  }
-}
-
 type NavItem = { to: string; label: string; icon: IconName; end?: true }
 
 const PRIMARY_NAV: NavItem[] = [
@@ -51,13 +33,14 @@ function navItemClass(compact: boolean) {
 
 export function AppSidebar({
   mobile,
+  collapsed = false,
   onRequestClose,
 }: {
   mobile?: boolean
+  collapsed?: boolean
   onRequestClose?: () => void
 }) {
   const { state } = useWorkspaces()
-  const [collapsed, setCollapsed] = useState<boolean>(() => (mobile ? false : readCollapsed()))
   const [recentOpen, setRecentOpen] = useState(true)
   const [recentChats, setRecentChats] = useState<ChatPreview[]>([])
   const [usage, setUsage] = useState<UsageSnapshot | null>(null)
@@ -106,13 +89,6 @@ export function AppSidebar({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [mobile, onRequestClose])
-
-  const toggleCollapsed = () => {
-    setCollapsed((v) => {
-      writeCollapsed(!v)
-      return !v
-    })
-  }
 
   const renderNav = (items: NavItem[]) => (
     <nav className={['flex flex-col gap-0.5', compact ? 'items-center' : ''].join(' ')}>
@@ -172,38 +148,12 @@ export function AppSidebar({
               <Icon name="close" size={16} />
             </button>
           ) : null}
-
-          {!mobile && !compact ? (
-            <button
-              type="button"
-              className="saas-icon-btn ml-auto size-8"
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-              onClick={toggleCollapsed}
-            >
-              <Icon name="panelClose" size={16} />
-            </button>
-          ) : null}
         </div>
 
         <WorkspaceSwitcher compact={compact} />
       </div>
 
       <div className={['custom-scrollbar min-h-0 flex-1 overflow-y-auto pb-4 pt-4', compact ? 'px-2' : 'px-3'].join(' ')}>
-        {compact ? (
-          <div className="mb-2 flex justify-center">
-            <button
-              type="button"
-              className="saas-icon-btn size-8"
-              aria-label="Expand sidebar"
-              title="Expand sidebar"
-              onClick={toggleCollapsed}
-            >
-              <Icon name="panelOpen" size={16} />
-            </button>
-          </div>
-        ) : null}
-
         {renderNav(PRIMARY_NAV)}
 
         {!compact ? (

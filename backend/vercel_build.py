@@ -8,8 +8,13 @@ import sys
 
 
 def main() -> int:
-    if not (os.environ.get("DATABASE_URL") or os.environ.get("DIRECT_URL")):
+    url = os.environ.get("DIRECT_URL") or os.environ.get("DATABASE_URL") or ""
+    if not url:
         print("Skipping migrations: DATABASE_URL not set")
+        return 0
+    # Don't fail the whole deploy on a bad placeholder URL (e.g. example ellipsis hosts).
+    if "…" in url or "xxxx" in url or "PASSWORD" in url:
+        print("Skipping migrations: DATABASE_URL looks like a placeholder")
         return 0
     print("Running alembic upgrade head…")
     result = subprocess.run(
@@ -17,8 +22,15 @@ def main() -> int:
         check=False,
     )
     if result.returncode != 0:
-        print("Alembic failed — ensure DIRECT_URL points at a session-mode Postgres and pgvector is enabled.")
-        return result.returncode
+        print(
+            "Alembic failed — ensure DIRECT_URL is session-mode Postgres, "
+            "pgvector is enabled, and credentials are correct."
+        )
+        # Prefer a deployable API over a hard build fail; fix DB then redeploy.
+        if os.environ.get("VERCEL_MIGRATE_STRICT", "").lower() in {"1", "true", "yes"}:
+            return result.returncode
+        print("Continuing deploy (set VERCEL_MIGRATE_STRICT=true to fail the build).")
+        return 0
     print("Migrations OK")
     return 0
 

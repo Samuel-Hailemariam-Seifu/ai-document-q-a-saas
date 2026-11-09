@@ -31,7 +31,15 @@ function initialsFor(name: string | null | undefined, email: string | null | und
   return (chars.join('') || 'U').slice(0, 2)
 }
 
-export function AppHeader({ onOpenNav }: { onOpenNav?: () => void }) {
+export function AppHeader({
+  onOpenNav,
+  sidebarCollapsed,
+  onToggleSidebar,
+}: {
+  onOpenNav?: () => void
+  sidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
+}) {
   const location = useLocation()
   const crumbs = useMemo(() => crumbsForPath(location.pathname), [location.pathname])
   const { state: authState, logout } = useAuth()
@@ -53,6 +61,18 @@ export function AppHeader({ onOpenNav }: { onOpenNav?: () => void }) {
       >
         <Icon name="menu" size={18} />
       </button>
+
+      {onToggleSidebar ? (
+        <button
+          type="button"
+          className="saas-icon-btn -ml-1 hidden md:inline-flex"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={onToggleSidebar}
+        >
+          <Icon name="panelLeft" size={18} />
+        </button>
+      ) : null}
 
       <Link to="/app" className="shrink-0 md:hidden" aria-label={`${PRODUCT_NAME} home`}>
         <LogoMark size={24} />
