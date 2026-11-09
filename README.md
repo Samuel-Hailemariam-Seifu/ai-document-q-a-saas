@@ -28,7 +28,7 @@ Built as a full-stack SaaS MVP: JWT auth, multi-workspace isolation, async (or i
 - **Workspaces** — create / switch / isolate documents and chats per workspace
 - **Documents** — upload PDF / TXT / DOCX (max **25MB**), list, detail, delete, inspect extracted chunks
 - **Ingestion pipeline** — extract → chunk (overlap) → embed → store; status `pending` → `processing` → `ready` / `failed`
-- **Hybrid RAG chat** — vector cosine similarity + BM25, fused with Reciprocal Rank Fusion (RRF), optional neighbor-chunk expansion
+- **Hybrid RAG chat** — pgvector cosine distance (HNSW) + Postgres full-text (or legacy BM25), fused with RRF, optional neighbor-chunk expansion
 - **Citations** — document name, chunk id, page (when available), excerpt
 - **Dashboard** — workspace stats (docs, chats, queries, ingestion success)
 - **Theme** — light / dark UI
@@ -39,7 +39,7 @@ Built as a full-stack SaaS MVP: JWT auth, multi-workspace isolation, async (or i
 - Stripe syncs plan **status** only — upload/chat **quotas are not enforced** yet
 - Email flows need `RESEND_API_KEY` or they silently no-op
 - Social login buttons on auth pages are **UI-only** (not wired)
-- Embeddings live in Postgres as `float[]`; similarity is computed in Python (`pgvector` is a dependency for a future upgrade, not used in queries yet)
+- HNSW vector search is **approximate** — faster at scale, but may occasionally miss the exact nearest neighbor vs a full scan
 
 ---
 
@@ -62,7 +62,7 @@ flowchart TB
   end
 
   subgraph Data
-    PG[("PostgreSQL<br/>users · workspaces · docs<br/>chunks+embeddings · chats · subs")]
+    PG[("PostgreSQL + pgvector<br/>users · workspaces · docs<br/>chunks+embeddings · chats · subs")]
     FS[("Local file storage<br/>STORAGE_PATH / uploads")]
   end
 
@@ -119,9 +119,9 @@ flowchart LR
 ```mermaid
 flowchart TD
   Q["User question<br/>optional document_ids filter"] --> E["Embed question"]
-  Q --> B["BM25 over chunk text"]
-  E --> V["Cosine similarity<br/>vs stored embeddings"]
-  V --> RRF["Reciprocal Rank Fusion"]
+  Q --> B["Keyword top-N<br/>Postgres FTS (default) or BM25"]
+  E --> V["pgvector cosine distance<br/>HNSW · workspace filter"]
+  V --> RRF["RRF over candidate lists only"]
   B --> RRF
   RRF --> TOP["Top-K chunks"]
   TOP --> N["Neighbor expansion<br/>RETRIEVAL_NEIGHBOR_WINDOW"]
@@ -159,7 +159,7 @@ sequenceDiagram
   U->>FE: Ask question
   FE->>API: POST /api/workspaces/{id}/chat
   API->>EMB: Embed question
-  API->>DB: Hybrid retrieve (vector + BM25 → RRF)
+  API->>DB: Hybrid retrieve (pgvector + FTS/BM25 → RRF)
   API->>LLM: Generate from retrieved context
   API->>DB: Save user + assistant messages + citations
   API-->>FE: Answer + citations
@@ -198,6 +198,7 @@ erDiagram
     int document_id
     int chunk_index
     float[] embedding
+    vector embedding_vec
     text content
   }
   CHAT {
@@ -227,10 +228,10 @@ erDiagram
 |---|---|
 | **Frontend** | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4, Lucide icons |
 | **Backend** | FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, Celery, Redis |
-| **Database** | PostgreSQL (psycopg3) |
-| **Embeddings** | OpenAI `text-embedding-3-small` **or** local FastEmbed `BAAI/bge-small-en-v1.5` |
+| **Database** | PostgreSQL 16 + **pgvector** (psycopg3) |
+| **Embeddings** | OpenAI `text-embedding-3-small` (1536-d, default column) · local FastEmbed only after dim/model alignment + re-embed |
 | **LLM** | Groq (`llama-3.1-8b-instant`) preferred · else OpenAI (`gpt-4o-mini`) |
-| **Retrieval** | Cosine similarity + BM25 + RRF (+ neighbor window) |
+| **Retrieval** | pgvector HNSW + Postgres FTS (or BM25) + RRF (+ neighbor window) |
 | **Billing** | Stripe Checkout / Portal / webhooks |
 | **Email** | Resend (optional) |
 | **Infra** | Docker Compose · local disk uploads |
@@ -274,8 +275,15 @@ ai-document-q-a-saas/
 ### Prerequisites
 - Node.js **20+**
 - Python **3.11+**
-- PostgreSQL **16+** (local or Supabase)
+- PostgreSQL **16+ with pgvector** (Compose image `pgvector/pgvector:pg16`, or Supabase)
 - Optional: Redis **7+** (only if `RUN_INGEST_INLINE=false`)
+
+### Postgres / pgvector notes
+- **Docker Compose** uses `pgvector/pgvector:pg16`. If you previously ran plain `postgres:16`, recreate the DB volume so the extension image is used (`docker compose down -v` then `up --build`) — only do this if you can wipe local data.
+- **Supabase:** the migration runs `CREATE EXTENSION IF NOT EXISTS vector`. If your DB role cannot create extensions, enable **vector** in the Supabase dashboard (Database → Extensions), then re-run `alembic upgrade head`.
+- The Alembic migration adds `embedding_vec vector(1536)`, backfills from the legacy `float[]` column, and **keeps** `embedding` for verification. A later migration (not shipped here) will drop the old column after you review `scripts/compare_retrieval.py`.
+- **One embedding model per workspace.** Mixing OpenAI (1536) and FastEmbed (384) in the same workspace is rejected at ingest and query time. Switch models with `python -m scripts.reembed --workspace-id …`.
+- **HNSW trade-off:** approximate nearest neighbor is much faster than a full scan, but can occasionally miss the exact best match. Raise `HNSW_EF_SEARCH` for higher recall.
 
 ### 1) Backend
 
@@ -356,12 +364,16 @@ docker compose up --build
 | `RUN_INGEST_INLINE` | `true` = ingest in API process (best for Windows / no Redis) |
 | `REDIS_URL` | Celery broker when not inline |
 | `GROQ_API_KEY` | Preferred LLM |
-| `OPENAI_API_KEY` | OpenAI embeddings and/or LLM fallback |
+| `OPENAI_API_KEY` | OpenAI embeddings (required for default 1536-d column) and/or LLM fallback |
 | `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
-| `LOCAL_EMBEDDING_MODEL` | Default `BAAI/bge-small-en-v1.5` |
+| `EMBEDDING_DIM` | Must match DB `vector(N)` and the active model (default `1536`) |
+| `LOCAL_EMBEDDING_MODEL` | Default `BAAI/bge-small-en-v1.5` (384-d — not compatible with default column without re-migrate) |
 | `LLM_MODEL` | Groq default `llama-3.1-8b-instant` |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking |
 | `RETRIEVAL_TOP_K` / `RETRIEVAL_NEIGHBOR_WINDOW` | Retrieval |
+| `KEYWORD_BACKEND` | `postgres` (default, `ts_rank_cd`) or `bm25` (legacy Python) |
+| `HNSW_EF_SEARCH` | HNSW search breadth (default `100`) |
+| `HNSW_OVERFETCH_FACTOR` | Extra LIMIT multiplier when pgvector is older than 0.8 (no iterative scans) |
 | `STRIPE_*` | Optional billing |
 | `RESEND_API_KEY` / `EMAIL_FROM` / `FRONTEND_BASE_URL` | Optional email |
 | `REQUIRE_EMAIL_VERIFICATION` | Gate login on verified email |
@@ -420,11 +432,27 @@ Uses the seeded demo account (`demo@documind.ai`).
 
 ---
 
+### Retrieval verification & tests
+
+```bash
+# Old (full-scan Python) vs new (pgvector + keyword) overlap + latency
+cd backend
+.\.venv\Scripts\python -m scripts.compare_retrieval --workspace-id 1
+
+# Re-embed a workspace after changing embedding model / API key
+.\.venv\Scripts\python -m scripts.reembed --workspace-id 1
+
+# Integration tests (creates/drops database documind_test — never touches documind)
+# Requires Postgres with pgvector reachable as in DATABASE_URL host/user.
+.\.venv\Scripts\python -m pytest -q
+```
+
 ## Roadmap
 
 High-impact upgrades for a production SaaS:
 
-- [ ] **pgvector** + HNSW/IVFFlat (move similarity into Postgres)
+- [x] **pgvector** + HNSW + Postgres FTS hybrid retrieval
+- [ ] Drop legacy `document_chunks.embedding` `float[]` column (after compare script review)
 - [ ] **Streaming** answers (SSE / WebSockets)
 - [ ] **Plan enforcement** (document / query limits from Stripe status)
 - [ ] Org **RBAC** (members, roles, shared workspaces)

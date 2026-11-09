@@ -26,7 +26,7 @@ from app.services.chat_service import (
     list_messages,
     list_recent_chat_previews,
 )
-from app.services.embeddings_service import embed_texts
+from app.services.embeddings_service import EmbeddingModelMismatchError, embed_texts
 from app.services.llm_service import generate_answer
 from app.core.config import settings
 from app.services.retrieval_service import (
@@ -184,15 +184,18 @@ def ask(
         expanded_chunks = first_chunks_for_documents(db, document_ids=selected_document_ids, per_document=4)
         name_by_doc = {}
     else:
-        query_emb = embed_texts([payload.question])[0]
-        top = hybrid_top_k(
-            db,
-            workspace_id=workspace_id,
-            query=payload.question,
-            query_embedding=query_emb,
-            k=settings.retrieval_top_k,
-            document_ids=selected_document_ids,
-        )
+        try:
+            query_emb = embed_texts([payload.question])[0]
+            top = hybrid_top_k(
+                db,
+                workspace_id=workspace_id,
+                query=payload.question,
+                query_embedding=query_emb,
+                k=settings.retrieval_top_k,
+                document_ids=selected_document_ids,
+            )
+        except EmbeddingModelMismatchError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         expanded_chunks = expand_with_neighbors(db, seed_chunks=[c for c, _s, _fn in top])
         # Map doc_id -> filename from top hits
         name_by_doc: dict[int, str] = {c.document_id: fn for c, _s, fn in top}

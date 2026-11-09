@@ -15,16 +15,32 @@ Create `.env` from the example:
 copy .env.example .env
 ```
 
-### Database (Postgres)
+### Database (Postgres + pgvector)
 
 Set `DATABASE_URL` in `backend/.env`. Example:
 
 `postgresql+psycopg://postgres:postgres@localhost:5432/documind`
 
+Use a Postgres image/extension that includes **pgvector** (Compose: `pgvector/pgvector:pg16`). On Supabase, enable the `vector` extension in the dashboard if `CREATE EXTENSION` fails.
+
+Default embedding column is `vector(1536)` — set `OPENAI_API_KEY` (or re-embed after changing dim/model). `KEYWORD_BACKEND=postgres|bm25` selects keyword ranking.
+
 Run migrations:
 
 ```bash
 .venv/Scripts/python -m alembic -c alembic.ini upgrade head
+```
+
+Compare old vs new retrieval (before dropping the legacy `embedding` array column):
+
+```bash
+.venv/Scripts/python -m scripts.compare_retrieval --workspace-id 1
+```
+
+Tests create and drop `documind_test` (never the dev DB):
+
+```bash
+.venv/Scripts/python -m pytest -q
 ```
 
 ### Run the API

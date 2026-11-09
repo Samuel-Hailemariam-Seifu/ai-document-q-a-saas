@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     chunk_overlap: int = 250
     retrieval_top_k: int = 12
     retrieval_neighbor_window: int = 1
+    # Hybrid retrieval: top-N candidates per channel before RRF fusion.
+    # Effective N = max(50, retrieval_top_k) unless this is set higher via property helper.
+    keyword_backend: str = "postgres"  # postgres | bm25
+    hnsw_ef_search: int = 100
+    hnsw_overfetch_factor: int = 4
 
     # billing (Stripe)
     stripe_secret_key: str = ""
@@ -87,6 +92,9 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
 
+    @property
+    def retrieval_candidate_n(self) -> int:
+        return max(50, int(self.retrieval_top_k))
+
 
 settings = Settings()
-

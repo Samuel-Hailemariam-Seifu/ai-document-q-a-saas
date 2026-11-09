@@ -4,16 +4,21 @@ import math
 import re
 
 from rank_bm25 import BM25Okapi
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.pgvector_runtime import get_pgvector_info
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.services.embeddings_service import (
+    EmbeddingModelMismatchError,
+    configured_embedding_model,
+)
 
 
 # ---------------------------------------------------------------------------
-# Low-level math
+# Low-level math (legacy Python vector path)
 # ---------------------------------------------------------------------------
 
 def _dot(a: list[float], b: list[float]) -> float:
@@ -37,8 +42,71 @@ def _tokenize(text: str) -> list[str]:
     return re.findall(r"\w+", text.lower())
 
 
+def _tsquery_or_terms(query: str) -> str | None:
+    """
+    Build an english to_tsquery string with OR between lexemes.
+    plainto_tsquery uses AND; OR keeps partial / single-term hits rankable.
+    """
+    tokens = _tokenize(query)
+    if not tokens:
+        return None
+    # Strip tsquery operators / quotes from tokens; keep alphanumerics + underscore.
+    safe = [re.sub(r"[^\w]", "", t) for t in tokens]
+    safe = [t for t in safe if t]
+    if not safe:
+        return None
+    return " | ".join(safe)
+
+
 # ---------------------------------------------------------------------------
-# Chunk fetching
+# Workspace embedding-model policy
+# ---------------------------------------------------------------------------
+
+def workspace_embedding_models(
+    db: Session,
+    *,
+    workspace_id: int,
+) -> list[str]:
+    rows = db.execute(
+        select(Document.embedding_model)
+        .where(
+            Document.workspace_id == workspace_id,
+            Document.status == "ready",
+            Document.embedding_model.is_not(None),
+        )
+        .distinct()
+    ).scalars().all()
+    return sorted({m for m in rows if m})
+
+
+def assert_workspace_embedding_compatible(
+    db: Session,
+    *,
+    workspace_id: int,
+    model: str | None = None,
+) -> str | None:
+    """
+    Enforce one embedding model per workspace.
+    Returns the workspace model (if any). Raises on conflict with `model` or mixed docs.
+    """
+    existing = workspace_embedding_models(db, workspace_id=workspace_id)
+    if len(existing) > 1:
+        raise EmbeddingModelMismatchError(
+            f"Workspace {workspace_id} has mixed embedding models {existing}. "
+            f"Re-embed the workspace to a single model before querying or ingesting."
+        )
+    active = model if model is not None else configured_embedding_model()
+    if existing and existing[0] != active:
+        raise EmbeddingModelMismatchError(
+            f"Workspace {workspace_id} was embedded with {existing[0]!r}, but the "
+            f"configured model is {active!r}. Re-embed the workspace or restore the "
+            f"original model/API key configuration."
+        )
+    return existing[0] if existing else None
+
+
+# ---------------------------------------------------------------------------
+# Chunk fetching (legacy / BM25 path)
 # ---------------------------------------------------------------------------
 
 def _fetch_chunks(
@@ -58,11 +126,24 @@ def _fetch_chunks(
     )
     if document_ids:
         stmt = stmt.where(Document.id.in_(document_ids))
-    return db.execute(stmt).all()
+    return list(db.execute(stmt).all())
+
+
+def _base_chunk_filters(
+    *,
+    workspace_id: int,
+    document_ids: list[int] | None,
+) -> tuple[str, dict]:
+    clauses = ["d.workspace_id = :workspace_id", "d.status = 'ready'"]
+    params: dict = {"workspace_id": workspace_id}
+    if document_ids:
+        clauses.append("d.id = ANY(:document_ids)")
+        params["document_ids"] = document_ids
+    return " AND ".join(clauses), params
 
 
 # ---------------------------------------------------------------------------
-# Vector-only retrieval (kept for backward compat / testing)
+# Vector-only retrieval
 # ---------------------------------------------------------------------------
 
 def top_k_chunks_for_workspace(
@@ -73,10 +154,26 @@ def top_k_chunks_for_workspace(
     k: int = 6,
     document_ids: list[int] | None = None,
 ) -> list[tuple[DocumentChunk, float, str]]:
-    """
-    Returns [(chunk, cosine_score, document_original_name)] sorted by score desc.
-    Full table scan — no ANN index (pgvector upgrade path preserved).
-    """
+    """pgvector cosine distance search (filtered to workspace / ready / document_ids)."""
+    assert_workspace_embedding_compatible(db, workspace_id=workspace_id)
+    return _vector_top_n(
+        db,
+        workspace_id=workspace_id,
+        query_embedding=query_embedding,
+        n=k,
+        document_ids=document_ids,
+    )
+
+
+def top_k_chunks_for_workspace_legacy(
+    db: Session,
+    *,
+    workspace_id: int,
+    query_embedding: list[float],
+    k: int = 6,
+    document_ids: list[int] | None = None,
+) -> list[tuple[DocumentChunk, float, str]]:
+    """Full-scan Python cosine over legacy ARRAY embeddings (comparison / fallback)."""
     rows = _fetch_chunks(db, workspace_id=workspace_id, document_ids=document_ids)
 
     scored: list[tuple[DocumentChunk, float, str]] = []
@@ -89,9 +186,228 @@ def top_k_chunks_for_workspace(
     return scored[:k]
 
 
+def _apply_hnsw_session_settings(db: Session, *, limit: int) -> None:
+    """SET LOCAL must run in the same transaction as the vector ORDER BY query."""
+    info = get_pgvector_info()
+    ef = max(int(settings.hnsw_ef_search), int(limit))
+    db.execute(text("SET LOCAL hnsw.ef_search = :ef"), {"ef": ef})
+    if info is not None and info.supports_iterative_scan:
+        db.execute(text("SET LOCAL hnsw.iterative_scan = 'relaxed_order'"))
+
+
+def _vector_top_n(
+    db: Session,
+    *,
+    workspace_id: int,
+    query_embedding: list[float],
+    n: int,
+    document_ids: list[int] | None = None,
+) -> list[tuple[DocumentChunk, float, str]]:
+    if n <= 0:
+        return []
+
+    info = get_pgvector_info()
+    fetch_n = n
+    if info is not None and not info.supports_iterative_scan:
+        fetch_n = n * max(1, int(settings.hnsw_overfetch_factor))
+
+    where_sql, params = _base_chunk_filters(
+        workspace_id=workspace_id, document_ids=document_ids
+    )
+    params = {
+        **params,
+        "qvec": str(query_embedding),
+        "lim": fetch_n,
+    }
+
+    _apply_hnsw_session_settings(db, limit=fetch_n)
+
+    sql = text(
+        f"""
+        SELECT c.id AS chunk_id,
+               (c.embedding_vec <=> CAST(:qvec AS vector)) AS distance,
+               d.original_name AS original_name
+        FROM document_chunks c
+        JOIN documents d ON d.id = c.document_id
+        WHERE {where_sql}
+          AND c.embedding_vec IS NOT NULL
+        ORDER BY c.embedding_vec <=> CAST(:qvec AS vector)
+        LIMIT :lim
+        """
+    )
+    rows = db.execute(sql, params).all()
+    if not rows:
+        return []
+
+    # Re-sort by distance and truncate after over-fetch.
+    rows = sorted(rows, key=lambda r: float(r.distance))[:n]
+    chunk_ids = [int(r.chunk_id) for r in rows]
+    chunks = {
+        c.id: c
+        for c in db.execute(select(DocumentChunk).where(DocumentChunk.id.in_(chunk_ids)))
+        .scalars()
+        .all()
+    }
+    out: list[tuple[DocumentChunk, float, str]] = []
+    for r in rows:
+        chunk = chunks.get(int(r.chunk_id))
+        if chunk is None:
+            continue
+        distance = float(r.distance)
+        score = 1.0 - distance  # cosine distance → similarity-ish for callers
+        out.append((chunk, score, str(r.original_name)))
+    return out
+
+
 # ---------------------------------------------------------------------------
-# Hybrid retrieval — vector + BM25 fused with Reciprocal Rank Fusion (RRF)
+# Keyword retrieval
 # ---------------------------------------------------------------------------
+
+def _keyword_top_n_postgres(
+    db: Session,
+    *,
+    workspace_id: int,
+    query: str,
+    n: int,
+    document_ids: list[int] | None = None,
+) -> list[tuple[DocumentChunk, float, str]]:
+    tsquery = _tsquery_or_terms(query)
+    if not tsquery or n <= 0:
+        return []
+
+    where_sql, params = _base_chunk_filters(
+        workspace_id=workspace_id, document_ids=document_ids
+    )
+    params = {**params, "tsq": tsquery, "lim": n}
+
+    sql = text(
+        f"""
+        SELECT c.id AS chunk_id,
+               ts_rank_cd(c.content_tsv, to_tsquery('english', :tsq)) AS rank,
+               d.original_name AS original_name
+        FROM document_chunks c
+        JOIN documents d ON d.id = c.document_id
+        WHERE {where_sql}
+          AND c.content_tsv @@ to_tsquery('english', :tsq)
+        ORDER BY rank DESC
+        LIMIT :lim
+        """
+    )
+    rows = db.execute(sql, params).all()
+    if not rows:
+        return []
+
+    chunk_ids = [int(r.chunk_id) for r in rows]
+    chunks = {
+        c.id: c
+        for c in db.execute(select(DocumentChunk).where(DocumentChunk.id.in_(chunk_ids)))
+        .scalars()
+        .all()
+    }
+    out: list[tuple[DocumentChunk, float, str]] = []
+    for r in rows:
+        chunk = chunks.get(int(r.chunk_id))
+        if chunk is None:
+            continue
+        out.append((chunk, float(r.rank), str(r.original_name)))
+    return out
+
+
+def _keyword_top_n_bm25(
+    db: Session,
+    *,
+    workspace_id: int,
+    query: str,
+    n: int,
+    document_ids: list[int] | None = None,
+) -> list[tuple[DocumentChunk, float, str]]:
+    rows = _fetch_chunks(db, workspace_id=workspace_id, document_ids=document_ids)
+    if not rows or n <= 0:
+        return []
+
+    chunks = [chunk for chunk, _ in rows]
+    doc_names = [doc_name for _, doc_name in rows]
+    query_tokens = _tokenize(query)
+    corpus = [_tokenize(chunk.content or "") for chunk in chunks]
+    if not query_tokens or not any(corpus):
+        return []
+
+    bm25 = BM25Okapi(corpus)
+    scores = bm25.get_scores(query_tokens)
+    order = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)[:n]
+    return [(chunks[i], float(scores[i]), doc_names[i]) for i in order]
+
+
+def keyword_top_n(
+    db: Session,
+    *,
+    workspace_id: int,
+    query: str,
+    n: int,
+    document_ids: list[int] | None = None,
+    backend: str | None = None,
+) -> list[tuple[DocumentChunk, float, str]]:
+    b = (backend or settings.keyword_backend or "postgres").lower()
+    if b == "bm25":
+        return _keyword_top_n_bm25(
+            db,
+            workspace_id=workspace_id,
+            query=query,
+            n=n,
+            document_ids=document_ids,
+        )
+    return _keyword_top_n_postgres(
+        db,
+        workspace_id=workspace_id,
+        query=query,
+        n=n,
+        document_ids=document_ids,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Hybrid retrieval — vector + keyword fused with Reciprocal Rank Fusion (RRF)
+# ---------------------------------------------------------------------------
+
+def _rrf_fuse(
+    vector_hits: list[tuple[DocumentChunk, float, str]],
+    keyword_hits: list[tuple[DocumentChunk, float, str]],
+    *,
+    k: int,
+    rrf_k: int,
+) -> list[tuple[DocumentChunk, float, str]]:
+    """Fuse two ranked candidate lists only (not the full corpus)."""
+    by_id: dict[int, tuple[DocumentChunk, str]] = {}
+    vector_rank: dict[int, int] = {}
+    keyword_rank: dict[int, int] = {}
+
+    for rank, (chunk, _score, name) in enumerate(vector_hits):
+        by_id[chunk.id] = (chunk, name)
+        vector_rank[chunk.id] = rank
+    for rank, (chunk, _score, name) in enumerate(keyword_hits):
+        by_id[chunk.id] = (chunk, name)
+        keyword_rank[chunk.id] = rank
+
+    if not by_id:
+        return []
+
+    # Missing list → contribute nothing (omit that term), matching "candidate lists only".
+    scored: list[tuple[int, float]] = []
+    for cid in by_id:
+        rrf = 0.0
+        if cid in vector_rank:
+            rrf += 1.0 / (rrf_k + vector_rank[cid])
+        if cid in keyword_rank:
+            rrf += 1.0 / (rrf_k + keyword_rank[cid])
+        scored.append((cid, rrf))
+
+    scored.sort(key=lambda t: t[1], reverse=True)
+    out: list[tuple[DocumentChunk, float, str]] = []
+    for cid, score in scored[:k]:
+        chunk, name = by_id[cid]
+        out.append((chunk, score, name))
+    return out
+
 
 def hybrid_top_k(
     db: Session,
@@ -104,14 +420,41 @@ def hybrid_top_k(
     rrf_k: int = 60,
 ) -> list[tuple[DocumentChunk, float, str]]:
     """
-    Combines vector similarity and BM25 keyword search via Reciprocal Rank
-    Fusion (RRF). Returns [(chunk, rrf_score, document_original_name)].
+    Vector (pgvector) + keyword top-N, fused with RRF over the two candidate lists.
+    """
+    assert_workspace_embedding_compatible(db, workspace_id=workspace_id)
+    n = settings.retrieval_candidate_n
 
-    RRF score = 1/(rrf_k + vector_rank) + 1/(rrf_k + bm25_rank)
-    rrf_k=60 is the standard default — no tuning needed.
+    vector_hits = _vector_top_n(
+        db,
+        workspace_id=workspace_id,
+        query_embedding=query_embedding,
+        n=n,
+        document_ids=document_ids,
+    )
+    keyword_hits = keyword_top_n(
+        db,
+        workspace_id=workspace_id,
+        query=query,
+        n=n,
+        document_ids=document_ids,
+    )
+    return _rrf_fuse(vector_hits, keyword_hits, k=k, rrf_k=rrf_k)
 
-    Falls back gracefully: if all embeddings are missing, only BM25 ranks;
-    if the query tokenizes to nothing, only vector ranks.
+
+def hybrid_top_k_legacy(
+    db: Session,
+    *,
+    workspace_id: int,
+    query: str,
+    query_embedding: list[float],
+    k: int = 6,
+    document_ids: list[int] | None = None,
+    rrf_k: int = 60,
+) -> list[tuple[DocumentChunk, float, str]]:
+    """
+    Original full-workspace scan: Python cosine + BM25Okapi over all ready chunks.
+    Kept for old-vs-new comparison scripts.
     """
     rows = _fetch_chunks(db, workspace_id=workspace_id, document_ids=document_ids)
     if not rows:
@@ -120,8 +463,7 @@ def hybrid_top_k(
     chunks = [chunk for chunk, _ in rows]
     doc_names = [doc_name for _, doc_name in rows]
 
-    # --- Vector ranking ---
-    vector_scored: list[tuple[int, float]] = []  # (index, score)
+    vector_scored: list[tuple[int, float]] = []
     for i, chunk in enumerate(chunks):
         emb = chunk.embedding or []
         score = cosine_similarity(query_embedding, emb)
@@ -129,7 +471,6 @@ def hybrid_top_k(
     vector_scored.sort(key=lambda t: t[1], reverse=True)
     vector_rank: dict[int, int] = {idx: rank for rank, (idx, _) in enumerate(vector_scored)}
 
-    # --- BM25 ranking ---
     query_tokens = _tokenize(query)
     corpus = [_tokenize(chunk.content or "") for chunk in chunks]
 
@@ -140,10 +481,8 @@ def hybrid_top_k(
         bm25_order = sorted(range(len(chunks)), key=lambda i: bm25_scores[i], reverse=True)
         bm25_rank = {idx: rank for rank, idx in enumerate(bm25_order)}
     else:
-        # No keyword signal — rank all equally last so only vector contributes
         bm25_rank = {i: len(chunks) for i in range(len(chunks))}
 
-    # --- RRF fusion ---
     rrf_scores: list[tuple[int, float]] = []
     for i in range(len(chunks)):
         vr = vector_rank.get(i, len(chunks))
@@ -153,7 +492,6 @@ def hybrid_top_k(
 
     rrf_scores.sort(key=lambda t: t[1], reverse=True)
     top = rrf_scores[:k]
-
     return [(chunks[i], score, doc_names[i]) for i, score in top]
 
 
@@ -173,7 +511,6 @@ def expand_with_neighbors(
     w = settings.retrieval_neighbor_window if window is None else window
     w = max(0, int(w))
     if w == 0:
-        # keep stable order and unique by id
         seen: set[int] = set()
         out: list[DocumentChunk] = []
         for c in seed_chunks:
@@ -198,7 +535,6 @@ def expand_with_neighbors(
         ).scalars().all()
         expanded.extend(list(rows))
 
-    # unique while preserving order
     seen2: set[int] = set()
     out2: list[DocumentChunk] = []
     for c in expanded:

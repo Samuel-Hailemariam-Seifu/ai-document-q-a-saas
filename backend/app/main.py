@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,10 +12,24 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.core.config import settings
+from app.core.database import engine
+from app.core.startup import run_startup_checks
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        run_startup_checks(engine)
+    except Exception:
+        logger.exception("Startup checks failed")
+        raise
+    yield
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="DocuMind AI API")
+    app = FastAPI(title="DocuMind AI API", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -36,4 +53,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

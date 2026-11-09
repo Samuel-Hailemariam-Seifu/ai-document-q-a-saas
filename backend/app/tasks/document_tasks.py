@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
-from app.services.embeddings_service import embed_texts
+from app.services.embeddings_service import (
+    EmbeddingModelMismatchError,
+    configured_embedding_model,
+    embed_texts,
+)
+from app.services.retrieval_service import assert_workspace_embedding_compatible
 from app.services.storage_service import resolve_path
 from app.tasks.celery_app import celery_app
 from app.utils.chunking import chunk_pages
@@ -29,6 +34,18 @@ def ingest_document(document_id: int) -> None:
         doc.processing_finished_at = None
         db.commit()
 
+        model = configured_embedding_model()
+        try:
+            assert_workspace_embedding_compatible(
+                db, workspace_id=doc.workspace_id, model=model
+            )
+        except EmbeddingModelMismatchError as exc:
+            doc.status = "failed"
+            doc.error_message = str(exc)[:1024]
+            doc.processing_finished_at = datetime.now(timezone.utc)
+            db.commit()
+            return
+
         full_path = resolve_path(doc.file_path)
         content = full_path.read_bytes()
 
@@ -44,6 +61,7 @@ def ingest_document(document_id: int) -> None:
             doc.error_message = "No text extracted"
             doc.page_count = page_count
             doc.chunk_count = 0
+            doc.embedding_model = None
             doc.processing_finished_at = datetime.now(timezone.utc)
             db.commit()
             return
@@ -57,12 +75,14 @@ def ingest_document(document_id: int) -> None:
                 page_number=c.page_number,
                 content=c.content,
                 embedding=emb,
+                embedding_vec=emb,
             )
             for c, emb in zip(chunks, embeddings, strict=True)
         ]
         db.add_all(rows)
         doc.page_count = page_count
         doc.chunk_count = len(rows)
+        doc.embedding_model = model
         doc.status = "ready"
         doc.processing_finished_at = datetime.now(timezone.utc)
         db.commit()
@@ -81,4 +101,3 @@ def ingest_document(document_id: int) -> None:
         raise
     finally:
         db.close()
-
